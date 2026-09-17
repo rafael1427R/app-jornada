@@ -1,23 +1,27 @@
 LOGOS OFICIAIS — Vitalis
 ========================
 
-Substitua os dois arquivos de exemplo desta pasta pelas artes oficiais,
-MANTENDO EXATAMENTE OS MESMOS NOMES:
+Coloque as artes oficiais NESTA PASTA, com exatamente estes nomes:
 
-  hospital.png  -> logo do Hospital Regional Chagas Rodrigues
-  isac.png      -> logo do ISAC (Instituto Saúde e Cidadania)
+  hospital   -> logo do Hospital Regional Chagas Rodrigues (horizontal)
+  isac       -> logo do ISAC — Instituto Saúde e Cidadania (vertical)
+
+Extensões aceitas: .png (preferida), .svg ou .jpg
+Exemplos válidos: hospital.png / hospital.svg / hospital.jpg
 
 Recomendações:
-  - PNG com fundo transparente (ou SVG renomeado para .png não funciona:
-    se preferir SVG, troque a extensão em src/lib/brand.js).
-  - Altura mínima de 200px para ficar nítido nas impressões.
-  - A logo do hospital é usada na horizontal (deitada); a do ISAC na vertical.
+  - PNG com fundo transparente
+  - Altura mínima de 200px (para sair nítido na impressão térmica)
 
-Onde as logos aparecem:
+Os arquivos "exemplo-hospital.svg" e "exemplo-isac.svg" são apenas
+demonstrativos e NÃO são usados pelo sistema. Enquanto as artes oficiais
+não estiverem aqui, o sistema mostra uma marca substituta simples —
+nada quebra.
+
+Onde as logos aparecem automaticamente:
   - Tela de login (as duas)
-  - Barra lateral (hospital)
+  - Barra lateral (hospital) e rodapé da barra lateral (ISAC)
   - Painel público /status (as duas)
-  - Crachá de acompanhante impresso (as duas)
-  - Relatórios e etiquetas impressos (as duas)
+  - Crachá de acompanhante, etiquetas de dieta e todos os relatórios
 
-Não é necessário reiniciar o servidor: basta atualizar a página (F5).
+Não precisa reiniciar o servidor: basta atualizar a página (F5).
