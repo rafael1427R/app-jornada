@@ -271,6 +271,30 @@ create index if not exists ps_altas_data_idx on public.ps_altas (data);
 create index if not exists ps_altas_prontuario_idx on public.ps_altas (prontuario);
 
 -- ---------------------------------------------------------------------
+-- 12. Log de auditoria (rastreabilidade das ações)
+-- ---------------------------------------------------------------------
+create table if not exists public.log_auditoria (
+  id            uuid primary key default gen_random_uuid(),
+  data          timestamptz not null default now(),
+  usuario       text        not null default 'Sistema',
+  funcao        text        default '',
+  acao          text        not null
+                check (acao in ('criar', 'editar', 'excluir', 'ocupar', 'alta', 'status')),
+  entidade      text        not null default 'leito',
+  entidade_id   text        default '',
+  referencia    text        default '',
+  prontuario    text        default '',
+  setor         text        default '',
+  detalhe       text        default '',
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
+create index if not exists log_auditoria_data_idx on public.log_auditoria (data desc);
+create index if not exists log_auditoria_acao_idx on public.log_auditoria (acao);
+create index if not exists log_auditoria_usuario_idx on public.log_auditoria (usuario);
+
+-- ---------------------------------------------------------------------
 -- Triggers de atualização
 -- ---------------------------------------------------------------------
 do $$
@@ -279,7 +303,7 @@ declare
 begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
-    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas'
+    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria'
   ] loop
     execute format('drop trigger if exists set_atualizado_em on public.%I', tabela);
     execute format(
@@ -303,7 +327,7 @@ declare
 begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
-    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas'
+    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria'
   ] loop
     execute format('alter table public.%I enable row level security', tabela);
     execute format('drop policy if exists "acesso_interno" on public.%I', tabela);

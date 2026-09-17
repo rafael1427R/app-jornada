@@ -9,6 +9,7 @@ import {
   IdCard,
   LayoutDashboard,
   LayoutGrid,
+  ScrollText,
   ShieldCheck,
   Stethoscope,
   Wrench,
@@ -27,6 +28,7 @@ export const MODULE_ICONS = {
   IdCard,
   BedDouble,
   Ambulance,
+  ScrollText,
   ShieldCheck,
 }
 

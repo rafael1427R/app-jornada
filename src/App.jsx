@@ -18,6 +18,7 @@ import EscalaPlantao from '@/pages/EscalaPlantao'
 import Visitantes from '@/pages/Visitantes'
 import Leitos from '@/pages/Leitos'
 import ProntoSocorro from '@/pages/ProntoSocorro'
+import Auditoria from '@/pages/Auditoria'
 import Usuarios from '@/pages/Usuarios'
 import PainelStatus from '@/pages/PainelStatus'
 
@@ -65,6 +66,7 @@ function PrivateArea() {
         <Route path="/visitantes" element={<Guard moduleId="visitantes"><Visitantes /></Guard>} />
         <Route path="/leitos" element={<Guard moduleId="leitos"><Leitos /></Guard>} />
         <Route path="/pronto-socorro" element={<Guard moduleId="pronto-socorro"><ProntoSocorro /></Guard>} />
+        <Route path="/auditoria" element={<Guard moduleId="auditoria"><Auditoria /></Guard>} />
         <Route path="/usuarios" element={<Guard moduleId="usuarios"><Usuarios /></Guard>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

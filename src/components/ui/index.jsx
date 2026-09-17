@@ -142,6 +142,17 @@ export function Pill({ active, children, onClick, className }) {
   )
 }
 
+/* -------------------------------------------------------------- Progress */
+
+export function Progress({ value = 0, className, barClassName }) {
+  const safe = Math.max(0, Math.min(100, Number(value) || 0))
+  return (
+    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-slate-200', className)} role="progressbar" aria-valuenow={safe} aria-valuemin={0} aria-valuemax={100}>
+      <div className={cn('h-full rounded-full bg-primary transition-all', barClassName)} style={{ width: `${safe}%` }} />
+    </div>
+  )
+}
+
 /* ---------------------------------------------------------------- Modal */
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }) {

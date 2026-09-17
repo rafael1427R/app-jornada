@@ -13,6 +13,7 @@ export const MODULES = [
   { id: 'visitantes', label: 'Visitantes / Acompanhantes', path: '/visitantes', icon: 'IdCard' },
   { id: 'leitos', label: 'Leitos', path: '/leitos', icon: 'BedDouble' },
   { id: 'pronto-socorro', label: 'Pronto Socorro Digital', path: '/pronto-socorro', icon: 'Ambulance' },
+  { id: 'auditoria', label: 'Log de Auditoria', path: '/auditoria', icon: 'ScrollText' },
   { id: 'usuarios', label: 'Usuários e Acessos', path: '/usuarios', icon: 'ShieldCheck' },
 ]
 
@@ -140,6 +141,27 @@ export const BED_SECTORS = [
   { setor: 'Emergência', prefixo: 'EMG', total: 15 },
   { setor: 'Isolamento', prefixo: 'ISO', total: 10 },
 ]
+
+/* -------------------------------------------------------- Auditoria */
+
+/** Funções autorizadas a alterar leitos (as demais têm acesso somente leitura). */
+export const BED_WRITE_ROLES = ['Administrador', 'Enfermeiro', 'Técnico de Enfermagem']
+
+export const AUDIT_ACTIONS = {
+  criar: { label: 'Criação', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  editar: { label: 'Edição', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
+  excluir: { label: 'Exclusão', badge: 'bg-red-100 text-red-700 border-red-200' },
+  ocupar: { label: 'Ocupação', badge: 'bg-violet-100 text-violet-700 border-violet-200' },
+  alta: { label: 'Alta', badge: 'bg-accent-light text-accent-dark border-accent/30' },
+  status: { label: 'Mudança de status', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+}
+
+/** Motivos de saída do leito. */
+export const DISCHARGE_REASONS = {
+  alta: { label: 'Alta hospitalar', icon: '🏠', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  transferido: { label: 'Transferência', icon: '🚑', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
+  obito: { label: 'Óbito', icon: '⚫', badge: 'bg-slate-200 text-slate-700 border-slate-300' },
+}
 
 /* --------------------------------------------------- Pronto Socorro */
 

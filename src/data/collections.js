@@ -10,6 +10,7 @@ import {
   seedSalas,
   seedUsuarios,
   seedVisitantes,
+  seedAuditoria,
 } from './seeds'
 
 /**
@@ -28,6 +29,7 @@ export const COLLECTIONS = {
   psLeitos: { key: 'ps-v1', table: 'ps_leitos', seed: seedPsLeitos, dateFields: ['admitido_em'] },
   psAltas: { key: 'ps-altas-v1', table: 'ps_altas', seed: seedPsAltas, dateFields: ['data', 'admitido_em'] },
   usuarios: { key: 'sys-users-v1', table: 'usuarios', seed: seedUsuarios, dateFields: [] },
+  auditoria: { key: 'audit-v1', table: 'log_auditoria', seed: seedAuditoria, dateFields: ['data'] },
 }
 
 export const SESSION_KEY = 'sys-session-v1'

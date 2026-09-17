@@ -58,9 +58,10 @@ A sessão fica em `localStorage` (`sys-session-v1`) e os usuários em
 | 8 | RPA | `/rpa` | Recuperação pós-anestésica: entrada, saída, alerta de permanência |
 | 9 | Escala de Plantão | `/escala` | Grade semanal por turno/função, substitutos e impressão paisagem |
 | 10 | Visitantes | `/visitantes` | Permanência de 1 hora, contador MM:SS, crachá térmico e relatório |
-| 11 | Leitos | `/leitos` | 150 leitos em 9 setores, ocupação por prontuário |
+| 11 | Leitos | `/leitos` | 150 leitos em 9 setores: CRUD de leitos, ocupação por prontuário, alta com motivo (alta/transferência/óbito), barra de ocupação por setor e vínculo com o acompanhante |
 | 12 | Pronto Socorro Digital | `/pronto-socorro` | 30 quartos digitais: admissão, evolução clínica e alta |
-| 13 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
+| 13 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
+| 14 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
 | — | Painel Acompanhantes | `/status` | **Rota pública, sem login**, status por prontuário |
 
 O menu lateral exibe **apenas os módulos liberados** para o usuário conectado.
@@ -138,6 +139,7 @@ Reinicie o `npm run dev`. O rodapé da barra lateral passa a indicar
 | `visitantes` | Controle de permanência dos acompanhantes |
 | `ps_leitos` | 30 quartos digitais do pronto socorro (evoluções em `jsonb`) |
 | `ps_altas` | Log de altas do pronto socorro |
+| `log_auditoria` | Rastreabilidade das ações (usuário, função, ação, registro, prontuário) |
 
 A view `painel_acompanhantes` expõe somente prontuário, horário e status do
 dia — é a base mínima para o painel público.
@@ -184,9 +186,21 @@ durante o uso, a operação cai automaticamente para o armazenamento local.
 
 Chaves de `localStorage`: `sys-session-v1`, `sys-users-v1`, `visitors-v1`,
 `leitos-v1`, `ps-v1`, `ps-altas-v1`, `cirurgias-v1`, `salas-v1`, `equipe-v1`,
-`equipamentos-v1`, `escala-v1`, `rpa-v1`.
+`equipamentos-v1`, `escala-v1`, `rpa-v1`, `audit-v1`.
 
 ---
+
+## Permissões no mapa de leitos
+
+Além da liberação por módulo (em Usuários e Acessos), as ações de escrita no
+mapa de leitos são restritas às funções listadas em `BED_WRITE_ROLES`
+(`src/lib/constants.js`): Administrador, Enfermeiro e Técnico de Enfermagem.
+As demais funções enxergam o mapa em modo somente leitura. Para liberar outra
+função, basta incluí-la nessa constante.
+
+Toda ação de escrita (criar, editar, excluir, ocupar, dar alta e mudar status)
+grava um registro no **Log de Auditoria**, com usuário, função, data/hora,
+leito, prontuário e descrição.
 
 ## Impressão
 

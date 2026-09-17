@@ -202,6 +202,12 @@ export function seedVisitantes() {
   return []
 }
 
+/* --------------------------------------------------------- Auditoria */
+
+export function seedAuditoria() {
+  return []
+}
+
 /* ---------------------------------------------------------- Usuários */
 
 export function seedUsuarios() {
