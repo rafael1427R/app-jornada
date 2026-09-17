@@ -13,6 +13,29 @@ const inflight = new Map()
 
 export const backendState = { remote: supabaseEnabled, degraded: false, message: '' }
 
+const backendListeners = new Set()
+
+function marcarDegradado(mensagem) {
+  if (backendState.degraded && backendState.message === mensagem) return
+  backendState.degraded = true
+  backendState.message = mensagem
+  backendListeners.forEach((listener) => listener())
+}
+
+/** Estado real da origem dos dados, incluindo a queda para o modo local. */
+export function useBackendStatus() {
+  const [, forcar] = useState(0)
+  useEffect(() => {
+    const listener = () => forcar((valor) => valor + 1)
+    backendListeners.add(listener)
+    return () => backendListeners.delete(listener)
+  }, [])
+
+  if (!backendState.remote) return { modo: 'local', rotulo: 'Local (offline)', alerta: false }
+  if (backendState.degraded) return { modo: 'degradado', rotulo: 'Supabase indisponível — salvando local', alerta: true, message: backendState.message }
+  return { modo: 'supabase', rotulo: 'Supabase', alerta: false }
+}
+
 function stateOf(name) {
   if (!cache.has(name)) {
     cache.set(name, { items: [], loading: true, error: null, loaded: false })
@@ -42,8 +65,7 @@ async function withFallback(operation, ...args) {
     return await primary[operation](...args)
   } catch (error) {
     if (primary === localAdapter) throw error
-    backendState.degraded = true
-    backendState.message = error.message
+    marcarDegradado(error.message)
     // eslint-disable-next-line no-console
     console.warn('[dados] Supabase indisponível, usando armazenamento local:', error.message)
     return localAdapter[operation](...args)

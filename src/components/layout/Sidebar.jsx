@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom'
-import { ChevronRight, ExternalLink, LogOut, ShieldCheck, X } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ExternalLink, LogOut, ShieldCheck, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { useAuth } from '@/context/AuthContext'
 import { APP_NAME, LGPD_NOTICE, SIDEBAR_SUBTITLE, SIDEBAR_TITLE } from '@/lib/brand'
-import { backendLabel } from '@/data/supabaseClient'
+import { useBackendStatus } from '@/data/store'
 import { moduleIcon } from './icons'
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout, allowedModules } = useAuth()
+  const backend = useBackendStatus()
 
   return (
     <>
@@ -96,8 +97,17 @@ export default function Sidebar({ open, onClose }) {
             <p className="text-[11px] font-medium leading-snug text-emerald-100">{LGPD_NOTICE}</p>
           </div>
 
-          <p className="px-1 text-[10px] text-white/40">
-            {APP_NAME} · v1.0 · dados: {backendLabel}
+          {backend.alerta ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+              <p className="text-[11px] font-semibold leading-snug text-amber-100">
+                Banco indisponível — os registros estão sendo salvos neste computador e não no Supabase.
+              </p>
+            </div>
+          ) : null}
+
+          <p className={`px-1 text-[10px] ${backend.alerta ? 'text-amber-200' : 'text-white/40'}`}>
+            {APP_NAME} · v1.0 · dados: {backend.rotulo}
           </p>
         </div>
       </aside>
