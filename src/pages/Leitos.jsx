@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BedDouble, Building2, Lock, LogIn, LogOut, Pencil, Plus, Sparkles, Trash2, Users, Wrench } from 'lucide-react'
+import { BedDouble, Building2, Download, Lock, LogIn, LogOut, Pencil, Plus, Sparkles, Trash2, Users, Wrench } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui'
 import { BED_SECTORS, BED_STATUS, DISCHARGE_REASONS } from '@/lib/constants'
 import { formatDate, formatDateTime, matches, percent } from '@/lib/format'
+import { baixarCsv, carimboArquivo } from '@/lib/csv'
 
 const SECTOR_ORDER = BED_SECTORS.map((item) => item.setor)
 const EMPTY_LEITO = { nome: '', setor: BED_SECTORS[0].setor, status: 'disponivel' }
@@ -250,6 +251,22 @@ export default function Leitos() {
     setDetalhe(null)
   }
 
+  function exportar() {
+    baixarCsv(
+      carimboArquivo('leitos'),
+      [
+        { label: 'Leito', valor: (l) => l.nome },
+        { label: 'Setor', valor: (l) => l.setor },
+        { label: 'Status', valor: (l) => BED_STATUS[l.status]?.label || l.status },
+        { label: 'Prontuário', valor: (l) => l.prontuario || '' },
+        { label: 'Ocupado desde', valor: (l) => (l.ocupado_em ? formatDateTime(l.ocupado_em) : '') },
+        { label: 'Previsão de alta', valor: (l) => (l.previsao_alta ? formatDate(l.previsao_alta) : '') },
+      ],
+      filtrados,
+    )
+    toast.success('Arquivo CSV gerado.')
+  }
+
   if (loading) return <LoadingState />
 
   return (
@@ -268,15 +285,20 @@ export default function Leitos() {
           description="150 leitos distribuídos em 9 setores — identificação por prontuário"
           icon={BedDouble}
           actions={
-            podeCriar ? (
-              <button type="button" className="btn-primary" onClick={abrirNovoLeito}>
-                <Plus className="h-4 w-4" /> Novo leito
+            <>
+              <button type="button" className="btn-ghost" onClick={exportar}>
+                <Download className="h-4 w-4" /> CSV
               </button>
-            ) : (
-              <Badge className="border-slate-200 bg-slate-100 text-slate-500">
-                <Lock className="h-3 w-3" /> Somente leitura
-              </Badge>
-            )
+              {podeCriar ? (
+                <button type="button" className="btn-primary" onClick={abrirNovoLeito}>
+                  <Plus className="h-4 w-4" /> Novo leito
+                </button>
+              ) : (
+                <Badge className="border-slate-200 bg-slate-100 text-slate-500">
+                  <Lock className="h-3 w-3" /> Somente leitura
+                </Badge>
+              )}
+            </>
           }
         />
 

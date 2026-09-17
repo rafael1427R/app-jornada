@@ -68,6 +68,21 @@ export default function Agendamento() {
       .sort((a, b) => `${b.data_prevista} ${b.hora_prevista}`.localeCompare(`${a.data_prevista} ${a.hora_prevista}`))
   }, [cirurgias, filtroStatus, filtroData, busca])
 
+  /**
+   * Lista toda a equipe, com a função pedida em primeiro lugar. Antes o
+   * select filtrava apenas a função exata e ficava vazio quando ninguém
+   * estava cadastrado com ela.
+   */
+  function equipePorFuncao(funcaoPreferida) {
+    const equipe = auxiliares.equipe || []
+    const preferidos = equipe.filter((pessoa) => pessoa.funcao === funcaoPreferida)
+    const demais = equipe.filter((pessoa) => pessoa.funcao !== funcaoPreferida)
+    const grupos = []
+    if (preferidos.length) grupos.push([funcaoPreferida, preferidos])
+    if (demais.length) grupos.push(['Demais profissionais', demais])
+    return grupos
+  }
+
   function abrirNova() {
     setForm({ ...EMPTY })
     setErrors({})
@@ -329,20 +344,28 @@ export default function Agendamento() {
             <Field label="Cirurgião responsável">
               <Select value={form.cirurgiao} onChange={(event) => setForm({ ...form, cirurgiao: event.target.value })}>
                 <option value="">Selecione...</option>
-                {(auxiliares.equipe || []).filter((pessoa) => pessoa.funcao === 'Cirurgião').map((pessoa) => (
-                  <option key={pessoa.id} value={pessoa.nome}>
-                    {pessoa.nome}
-                  </option>
+                {equipePorFuncao('Cirurgião').map(([grupo, pessoas]) => (
+                  <optgroup key={grupo} label={grupo}>
+                    {pessoas.map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.nome}>
+                        {pessoa.nome}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </Select>
             </Field>
             <Field label="Anestesista">
               <Select value={form.anestesista} onChange={(event) => setForm({ ...form, anestesista: event.target.value })}>
                 <option value="">Selecione...</option>
-                {(auxiliares.equipe || []).filter((pessoa) => pessoa.funcao === 'Anestesista').map((pessoa) => (
-                  <option key={pessoa.id} value={pessoa.nome}>
-                    {pessoa.nome}
-                  </option>
+                {equipePorFuncao('Anestesista').map(([grupo, pessoas]) => (
+                  <optgroup key={grupo} label={grupo}>
+                    {pessoas.map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.nome}>
+                        {pessoa.nome}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </Select>
             </Field>

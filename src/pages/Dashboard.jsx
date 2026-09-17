@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, AlertTriangle, BedDouble, CalendarDays, ClipboardList, HeartPulse, LayoutGrid, Users } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, CalendarDays, ClipboardList, HeartPulse, LayoutGrid, Salad, Users } from 'lucide-react'
 import { useCollections } from '@/data/store'
 import { Card, CardHeader, EmptyState, KpiCard, KpiGrid, LoadingState, StatusBadge, TableWrapper, Td, Th } from '@/components/ui'
 import { ROOM_STATUS, SURGERY_STATUS, SURGERY_TYPES, VISIT_LIMIT_MINUTES } from '@/lib/constants'
@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { HOSPITAL_NAME } from '@/lib/brand'
 
 export default function Dashboard() {
-  const data = useCollections(['cirurgias', 'salas', 'leitos', 'visitantes', 'psLeitos', 'equipamentos', 'rpa'])
+  const data = useCollections(['cirurgias', 'salas', 'leitos', 'visitantes', 'psLeitos', 'equipamentos', 'rpa', 'dietas'])
   const { user } = useAuth()
 
   const cirurgiasHoje = useMemo(
@@ -24,6 +24,7 @@ export default function Dashboard() {
     const psLeitos = data.psLeitos || []
     const equipamentos = data.equipamentos || []
     const rpa = data.rpa || []
+    const dietas = (data.dietas || []).filter((dieta) => dieta.status === 'ativa')
 
     const dentro = visitantes.filter((visitante) => !visitante.saida)
     const expirados = dentro.filter((visitante) => minutesBetween(visitante.entrada) >= VISIT_LIMIT_MINUTES)
@@ -43,6 +44,8 @@ export default function Dashboard() {
       visitantesExpirados: expirados.length,
       psAtendimento: psLeitos.filter((leito) => leito.status === 'em_atendimento').length,
       rpaOcupados: rpa.filter((leito) => leito.status === 'ocupado').length,
+      dietasAtivas: dietas.length,
+      emObservacao: dietas.filter((dieta) => dieta.regime === 'observacao').length,
       manutencaoAtrasada,
     }
   }, [cirurgiasHoje, data])
@@ -72,11 +75,12 @@ export default function Dashboard() {
         />
       </KpiGrid>
 
-      <KpiGrid>
+      <KpiGrid className="xl:grid-cols-5">
         <KpiCard label="Pronto Socorro" value={stats.psAtendimento} hint="Em atendimento agora" icon={ClipboardList} tone="violet" />
         <KpiCard label="RPA ocupada" value={stats.rpaOcupados} hint="Recuperação pós-anestésica" icon={HeartPulse} tone="amber" />
         <KpiCard label="Acompanhantes" value={stats.visitantesDentro} hint={`${stats.visitantesExpirados} com tempo excedido`} icon={Users} tone="slate" />
         <KpiCard label="Manutenções atrasadas" value={stats.manutencaoAtrasada.length} hint="Equipamentos" icon={AlertTriangle} tone={stats.manutencaoAtrasada.length ? 'red' : 'emerald'} />
+        <KpiCard label="Dietas ativas" value={stats.dietasAtivas} hint={`${stats.emObservacao} em observação`} icon={Salad} tone="emerald" />
       </KpiGrid>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">

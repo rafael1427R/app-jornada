@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { CheckSquare, Printer, Square, Tags } from 'lucide-react'
+import { CheckSquare, Palette, Printer, Square, Tags } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { useAudit } from '@/lib/audit'
 import { Card, CardHeader, EmptyState, KpiCard, KpiGrid, LoadingState, Pill, SearchInput, Select } from '@/components/ui'
-import { BED_SECTORS, MEALS } from '@/lib/constants'
+import { BED_SECTORS, DIET_COLORS, MEALS } from '@/lib/constants'
 import { formatDate, matches, todayISO } from '@/lib/format'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
@@ -22,6 +22,7 @@ export default function EtiquetasDieta() {
   const [busca, setBusca] = useState('')
   const [selecionadas, setSelecionadas] = useState([])
   const [etiquetas, setEtiquetas] = useState(null)
+  const [colorida, setColorida] = useState(true)
 
   const podeImprimir = canDo('etiquetas', 'criar') || canDo('etiquetas', 'editar')
   const refeicaoAtual = MEALS.find((item) => item.id === refeicao) || MEALS[0]
@@ -97,10 +98,15 @@ export default function EtiquetasDieta() {
           actions={
             <>
               <button type="button" className="btn-ghost" onClick={() => imprimir(ativas)}>
-                <Printer className="h-4 w-4" /> Imprimir todas
+                <Printer className="h-4 w-4" /> Imprimir todas ({totalEtiquetas})
               </button>
-              <button type="button" className="btn-primary" onClick={() => imprimir(ativas.filter((dieta) => selecionadas.includes(dieta.id)))}>
-                <Printer className="h-4 w-4" /> Imprimir selecionadas
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => imprimir(ativas.filter((dieta) => selecionadas.includes(dieta.id)))}
+                disabled={selecionadas.length === 0}
+              >
+                <Printer className="h-4 w-4" /> Imprimir selecionadas ({selecionadas.length})
               </button>
             </>
           }
@@ -125,9 +131,21 @@ export default function EtiquetasDieta() {
             </Select>
             <SearchInput value={busca} onChange={setBusca} placeholder="Prontuário ou leito..." />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Pill onClick={() => setSelecionadas(ativas.map((dieta) => dieta.id))}>Selecionar todas</Pill>
             <Pill onClick={() => setSelecionadas([])}>Limpar seleção</Pill>
+            <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+            <Pill active={colorida} onClick={() => setColorida(true)}>
+              <span className="inline-flex items-center gap-1">
+                <Palette className="h-3.5 w-3.5" /> Colorida
+              </span>
+            </Pill>
+            <Pill active={!colorida} onClick={() => setColorida(false)}>
+              Preto e branco
+            </Pill>
+            <span className="text-xs text-slate-400">
+              {colorida ? 'Faixa colorida por consistência — exige impressora colorida' : 'Ideal para impressora térmica'}
+            </span>
           </div>
         </div>
 
@@ -171,47 +189,76 @@ export default function EtiquetasDieta() {
         {etiquetas ? (
           <div className="font-sans text-black">
             <div className="grid grid-cols-2 gap-[2mm]">
-              {etiquetas.map((etiqueta) => (
-                <div key={etiqueta.chave} style={{ width: '70mm', height: '40mm' }} className="overflow-hidden border border-black p-[2mm]">
-                  <div className="flex items-center justify-between gap-[2mm] border-b border-black pb-[1mm]">
-                    <Logo variant="hospital" className="h-[6mm]" />
-                    <span className="text-[2.6mm] font-bold uppercase">
-                      {MEALS.find((item) => item.id === refeicao)?.label} {MEALS.find((item) => item.id === refeicao)?.hora}
-                    </span>
-                  </div>
+              {etiquetas.map((etiqueta) => {
+                const cor = colorida ? DIET_COLORS[etiqueta.consistencia] || '#0f4c81' : '#000000'
+                const enteral = etiqueta.via_enteral && etiqueta.via_enteral !== 'Não se aplica'
+                const observacao = (etiqueta.regime || 'internacao') === 'observacao'
+                return (
+                  <div
+                    key={etiqueta.chave}
+                    style={{ width: '70mm', height: '40mm', borderColor: cor }}
+                    className="relative overflow-hidden border-2 pl-[4mm] pr-[2mm] pt-[1.5mm]"
+                  >
+                    {/* Faixa lateral com a cor da consistência */}
+                    <span className="absolute inset-y-0 left-0 w-[3mm]" style={{ background: cor }} aria-hidden="true" />
 
-                  <div className="mt-[1mm] flex items-baseline justify-between">
-                    <span className="text-[2.4mm] font-bold uppercase">Prontuário</span>
-                    <span className="font-mono text-[5mm] font-extrabold leading-none">{etiqueta.prontuario}</span>
-                  </div>
-
-                  <div className="mt-[1mm] grid grid-cols-2 gap-[1mm] text-[2.8mm]">
-                    <div>
-                      <p className="font-bold uppercase">Leito</p>
-                      <p className="text-[3.4mm] font-extrabold">{etiqueta.leito}</p>
+                    <div className="flex items-center justify-between gap-[2mm] border-b pb-[1mm]" style={{ borderColor: cor }}>
+                      <Logo variant="hospital" className="h-[6mm]" />
+                      <span className="rounded-[1mm] px-[1.5mm] py-[0.5mm] text-[2.6mm] font-bold uppercase text-white" style={{ background: cor }}>
+                        {MEALS.find((item) => item.id === refeicao)?.label} {MEALS.find((item) => item.id === refeicao)?.hora}
+                      </span>
                     </div>
-                    <div>
-                      <p className="font-bold uppercase">Setor</p>
-                      <p className="truncate font-bold">{etiqueta.setor}</p>
+
+                    <div className="mt-[1mm] flex items-baseline justify-between">
+                      <span className="text-[2.4mm] font-bold uppercase">Prontuário</span>
+                      <span className="font-mono text-[5mm] font-extrabold leading-none">{etiqueta.prontuario}</span>
+                    </div>
+
+                    <div className="mt-[1mm] grid grid-cols-2 gap-[1mm] text-[2.8mm]">
+                      <div>
+                        <p className="font-bold uppercase">Leito</p>
+                        <p className="text-[3.4mm] font-extrabold">{etiqueta.leito}</p>
+                      </div>
+                      <div>
+                        <p className="font-bold uppercase">Setor</p>
+                        <p className="truncate font-bold">{etiqueta.setor}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-[1mm] text-[2.8mm]">
+                      <p className="font-bold uppercase">Dieta</p>
+                      <p className="truncate font-bold">
+                        {etiqueta.consistencia} · {etiqueta.modificacao}
+                      </p>
+                    </div>
+
+                    <div className="absolute inset-x-[2mm] bottom-[1.5mm] flex items-center justify-between gap-[1mm] text-[2.4mm]">
+                      <span className="font-extrabold uppercase">
+                        {etiqueta.tipo === 'acompanhante' ? 'Acompanhante' : 'Paciente'}
+                      </span>
+                      <span className="flex items-center gap-[1mm]">
+                        {observacao ? (
+                          <span
+                            className="rounded-[1mm] px-[1mm] py-[0.5mm] text-[2.2mm] font-extrabold uppercase"
+                            style={colorida ? { background: '#f59e0b', color: '#fff' } : { border: '0.3mm solid #000' }}
+                          >
+                            Observação
+                          </span>
+                        ) : null}
+                        {enteral ? (
+                          <span
+                            className="rounded-[1mm] px-[1mm] py-[0.5mm] text-[2.2mm] font-extrabold uppercase"
+                            style={colorida ? { background: '#ef4444', color: '#fff' } : { border: '0.3mm solid #000' }}
+                          >
+                            ⚠ {etiqueta.via_enteral}
+                          </span>
+                        ) : null}
+                        <span>{formatDate(todayISO())}</span>
+                      </span>
                     </div>
                   </div>
-
-                  <div className="mt-[1mm] text-[2.8mm]">
-                    <p className="font-bold uppercase">Dieta</p>
-                    <p className="truncate font-bold">
-                      {etiqueta.consistencia} · {etiqueta.modificacao}
-                    </p>
-                    {etiqueta.via_enteral && etiqueta.via_enteral !== 'Não se aplica' ? (
-                      <p className="text-[2.6mm] font-extrabold uppercase">⚠ {etiqueta.via_enteral}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-[1mm] flex items-center justify-between border-t border-black pt-[1mm] text-[2.4mm]">
-                    <span className="font-extrabold uppercase">{etiqueta.tipo === 'acompanhante' ? 'Refeição do acompanhante' : 'Refeição do paciente'}</span>
-                    <span>{formatDate(todayISO())}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ) : null}

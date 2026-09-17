@@ -60,8 +60,8 @@ A sessão fica em `localStorage` (`sys-session-v1`) e os usuários em
 | 10 | Visitantes | `/visitantes` | Permanência de 1 hora, contador MM:SS, crachá térmico e relatório |
 | 11 | Leitos | `/leitos` | 150 leitos em 9 setores: CRUD de leitos, ocupação por prontuário, alta com motivo (alta/transferência/óbito), barra de ocupação por setor e vínculo com o acompanhante |
 | 12 | Pronto Socorro Digital | `/pronto-socorro` | 30 quartos digitais: admissão, evolução clínica e alta |
-| 13 | Nutrição / Dietas | `/nutricao` | Prescrição de dieta por prontuário/leito (consistência, modificação terapêutica, via enteral) e mapa de refeições por setor |
-| 14 | Etiquetas de Dieta | `/etiquetas` | Impressão térmica 70mm × 40mm por refeição, com etiqueta extra para o acompanhante |
+| 13 | Nutrição / Dietas | `/nutricao` | Prescrição por prontuário/leito (consistência, modificação terapêutica, via enteral), **regime de permanência com cronômetro** (internação ou observação) e mapa de refeições por setor |
+| 14 | Etiquetas de Dieta | `/etiquetas` | Impressão 70mm × 40mm por refeição, **colorida ou preto e branco**, com etiqueta extra para o acompanhante e marcação de sonda/observação |
 | 15 | Almoxarifado | `/almoxarifado` | Estoque da UAN: saldo, entrada/saída com validação de saldo, alerta de mínimo e histórico |
 | 16 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
 | 17 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
@@ -309,6 +309,27 @@ acesso total aos módulos daquela lista (`src/lib/permissions.js`).
 
 Toda ação de escrita em leitos e dietas grava um registro no **Log de
 Auditoria**, com usuário, função, data/hora, registro, prontuário e descrição.
+
+## Tempo de permanência
+
+O módulo de Nutrição marca cada prescrição como **Internação** ou **Em
+observação** e conta o tempo desde o início do regime. A contagem reinicia
+quando o regime muda. As faixas de alerta estão em `OBSERVATION_HOURS`
+(`src/lib/constants.js`):
+
+| Faixa | Cor |
+| --- | --- |
+| Até 6h | Verde |
+| 6h a 12h | Âmbar |
+| 12h a 24h | Vermelho |
+| Acima de 24h | Vermelho, linha destacada e KPI "Tempo excedido" |
+
+## Exportação para planilha
+
+Nutrição, Leitos, Almoxarifado e Log de Auditoria têm botão **CSV**, que baixa
+exatamente o que está filtrado na tela. O arquivo sai com separador ponto e
+vírgula e BOM UTF-8, então abre direto no Excel em português sem quebrar
+acentos.
 
 ## Impressão
 

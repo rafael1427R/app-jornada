@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Lock, Pencil, Plus, Printer, Salad, Trash2, UtensilsCrossed } from 'lucide-react'
+import { Clock, Download, Eye, Lock, Pencil, Plus, Printer, Salad, Trash2, UtensilsCrossed } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
@@ -24,8 +24,19 @@ import {
   Textarea,
   Th,
 } from '@/components/ui'
-import { BED_SECTORS, DIET_CONSISTENCY, DIET_MODIFICATIONS, DIET_STATUS, ENTERAL_ROUTES, MEALS } from '@/lib/constants'
-import { formatDate, matches, todayISO } from '@/lib/format'
+import {
+  BED_SECTORS,
+  DIET_CONSISTENCY,
+  DIET_MODIFICATIONS,
+  DIET_REGIMES,
+  DIET_STATUS,
+  ENTERAL_ROUTES,
+  MEALS,
+  OBSERVATION_HOURS,
+} from '@/lib/constants'
+import { formatDate, formatDateTime, formatDuration, matches, minutesBetween, todayISO } from '@/lib/format'
+import { useNow } from '@/lib/useNow'
+import { baixarCsv, carimboArquivo } from '@/lib/csv'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
 import PrintHeader from '@/components/PrintHeader'
@@ -34,6 +45,7 @@ const EMPTY = {
   prontuario: '',
   leito: '',
   setor: '',
+  regime: 'internacao',
   consistencia: 'Geral',
   modificacao: 'Sem modificação',
   via_enteral: 'Não se aplica',
@@ -42,14 +54,26 @@ const EMPTY = {
   observacoes: '',
   status: 'ativa',
   data_prescricao: todayISO(),
+  inicio_em: '',
+}
+
+/** Cor do tempo de permanência conforme as faixas de alerta. */
+export function toneDoTempo(minutos, regime) {
+  const horas = minutos / 60
+  if (regime !== 'observacao') return 'text-slate-500'
+  if (horas >= OBSERVATION_HOURS.limite) return 'font-bold text-red-600'
+  if (horas >= OBSERVATION_HOURS.critico) return 'font-semibold text-red-500'
+  if (horas >= OBSERVATION_HOURS.atencao) return 'font-semibold text-amber-600'
+  return 'font-semibold text-emerald-600'
 }
 
 export default function Nutricao() {
   const { items: dietas, loading, create, update, remove } = useCollection('dietas')
-  const { items: leitos } = useCollection('leitos')
+  const { items: leitos, update: atualizarLeito } = useCollection('leitos')
   const { user, canDo } = useAuth()
   const toast = useToast()
   const registrarLog = useAudit()
+  useNow(30000)
 
   const podeCriar = canDo('nutricao', 'criar')
   const podeEditar = canDo('nutricao', 'editar')
@@ -58,6 +82,7 @@ export default function Nutricao() {
   const [aba, setAba] = useState('prescricoes')
   const [busca, setBusca] = useState('')
   const [filtroSetor, setFiltroSetor] = useState('todos')
+  const [filtroRegime, setFiltroRegime] = useState('todos')
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState({})
@@ -65,35 +90,50 @@ export default function Nutricao() {
 
   const ativas = useMemo(() => dietas.filter((dieta) => dieta.status === 'ativa'), [dietas])
 
+  /** Minutos desde o início do regime atual (ou do cadastro, em registros antigos). */
+  const tempoDe = (dieta) => minutesBetween(dieta.inicio_em || dieta.criado_em)
+
   const kpis = useMemo(
     () => ({
       ativas: ativas.length,
+      observacao: ativas.filter((dieta) => dieta.regime === 'observacao').length,
       enteral: ativas.filter((dieta) => dieta.via_enteral && dieta.via_enteral !== 'Não se aplica').length,
       acompanhantes: ativas.filter((dieta) => dieta.acompanhante_refeicao).length,
-      suspensas: dietas.filter((dieta) => dieta.status === 'suspensa').length,
+      excedidos: ativas.filter((dieta) => dieta.regime === 'observacao' && tempoDe(dieta) / 60 >= OBSERVATION_HOURS.limite).length,
     }),
-    [dietas, ativas],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ativas],
   )
 
   const lista = useMemo(
     () =>
       dietas
         .filter((dieta) => (filtroSetor === 'todos' ? true : dieta.setor === filtroSetor))
+        .filter((dieta) => (filtroRegime === 'todos' ? true : (dieta.regime || 'internacao') === filtroRegime))
         .filter((dieta) => matches(busca, dieta.prontuario, dieta.leito, dieta.setor, dieta.consistencia, dieta.modificacao))
         .sort((a, b) => String(a.leito).localeCompare(String(b.leito))),
-    [dietas, filtroSetor, busca],
+    [dietas, filtroSetor, filtroRegime, busca],
   )
 
-  /** Mapa de refeições: quantidades por setor e consistência. */
+  /** Leitos agrupados: ocupados primeiro, para a prescrição do dia a dia. */
+  const leitosAgrupados = useMemo(() => {
+    const ordenados = [...leitos].sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
+    return {
+      ocupados: ordenados.filter((leito) => leito.status === 'ocupado'),
+      outros: ordenados.filter((leito) => leito.status !== 'ocupado'),
+    }
+  }, [leitos])
+
   const mapaRefeicoes = useMemo(() => {
     const setores = new Map()
     ativas.forEach((dieta) => {
       const chave = dieta.setor || 'Sem setor'
-      if (!setores.has(chave)) setores.set(chave, { setor: chave, total: 0, acompanhantes: 0, enteral: 0, consistencias: {} })
+      if (!setores.has(chave)) setores.set(chave, { setor: chave, total: 0, acompanhantes: 0, enteral: 0, observacao: 0, consistencias: {} })
       const registro = setores.get(chave)
       registro.total += 1
       if (dieta.acompanhante_refeicao) registro.acompanhantes += 1
       if (dieta.via_enteral && dieta.via_enteral !== 'Não se aplica') registro.enteral += 1
+      if (dieta.regime === 'observacao') registro.observacao += 1
       registro.consistencias[dieta.consistencia] = (registro.consistencias[dieta.consistencia] || 0) + 1
     })
     return Array.from(setores.values()).sort((a, b) => a.setor.localeCompare(b.setor))
@@ -108,12 +148,12 @@ export default function Nutricao() {
   }
 
   function abrirEdicao(dieta) {
-    setForm({ ...EMPTY, ...dieta })
+    setForm({ ...EMPTY, ...dieta, regime: dieta.regime || 'internacao' })
     setErrors({})
     setModal(dieta.id)
   }
 
-  /** Ao escolher o leito, o setor e o prontuário vêm junto. */
+  /** Ao escolher o leito, setor e prontuário vêm junto quando existem. */
   function selecionarLeito(nomeLeito) {
     const leito = leitos.find((item) => item.nome === nomeLeito)
     setForm((current) => ({
@@ -135,7 +175,15 @@ export default function Nutricao() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
-    const payload = { ...form, prontuario, prescrito_por: user?.nome || 'Sistema' }
+    const anterior = modal !== 'nova' ? dietas.find((dieta) => dieta.id === modal) : null
+    const mudouRegime = anterior && anterior.regime !== form.regime
+    const payload = {
+      ...form,
+      prontuario,
+      prescrito_por: user?.nome || 'Sistema',
+      // O cronômetro reinicia quando o regime muda (ex.: internação -> observação).
+      inicio_em: modal === 'nova' || mudouRegime ? new Date().toISOString() : form.inicio_em || new Date().toISOString(),
+    }
     delete payload.id
 
     if (modal === 'nova') {
@@ -147,9 +195,10 @@ export default function Nutricao() {
         referencia: form.leito,
         prontuario,
         setor: form.setor,
-        detalhe: `Dieta ${form.consistencia} / ${form.modificacao} prescrita para o prontuário ${prontuario}`,
+        detalhe: `Dieta ${form.consistencia} / ${form.modificacao} (${DIET_REGIMES[form.regime].label}) prescrita para o prontuário ${prontuario}`,
       })
       toast.success('Dieta prescrita.')
+      await sugerirOcupacao(form.leito, prontuario)
     } else {
       await update(modal, payload)
       await registrarLog({
@@ -159,11 +208,22 @@ export default function Nutricao() {
         referencia: form.leito,
         prontuario,
         setor: form.setor,
-        detalhe: `Prescrição atualizada: ${form.consistencia} / ${form.modificacao} (${DIET_STATUS[form.status].label})`,
+        detalhe: `Prescrição atualizada: ${form.consistencia} / ${form.modificacao} · ${DIET_REGIMES[form.regime].label} · ${DIET_STATUS[form.status].label}`,
       })
-      toast.success('Prescrição atualizada.')
+      toast.success(mudouRegime ? 'Prescrição atualizada e contagem de tempo reiniciada.' : 'Prescrição atualizada.')
     }
     setModal(null)
+  }
+
+  /** Mantém o mapa de leitos coerente com a prescrição recém-criada. */
+  async function sugerirOcupacao(nomeLeito, prontuario) {
+    const leito = leitos.find((item) => item.nome === nomeLeito)
+    if (!leito || leito.status === 'ocupado') return
+    if (!canDo('leitos', 'editar')) return
+    if (!window.confirm(`O leito ${nomeLeito} está como "${leito.status}" no mapa de leitos. Deseja marcá-lo como ocupado pelo prontuário ${prontuario}?`)) return
+
+    await atualizarLeito(leito.id, { status: 'ocupado', prontuario, ocupado_em: new Date().toISOString() })
+    toast.success(`Leito ${nomeLeito} atualizado para ocupado.`)
   }
 
   async function excluir(dieta) {
@@ -176,9 +236,31 @@ export default function Nutricao() {
       referencia: dieta.leito,
       prontuario: dieta.prontuario,
       setor: dieta.setor,
-      detalhe: `Prescrição de dieta excluída`,
+      detalhe: 'Prescrição de dieta excluída',
     })
     toast.success('Prescrição excluída.')
+  }
+
+  function exportar() {
+    baixarCsv(
+      carimboArquivo('dietas'),
+      [
+        { label: 'Leito', valor: (d) => d.leito },
+        { label: 'Prontuário', valor: (d) => d.prontuario },
+        { label: 'Setor', valor: (d) => d.setor },
+        { label: 'Regime', valor: (d) => DIET_REGIMES[d.regime || 'internacao'].label },
+        { label: 'Tempo (h)', valor: (d) => (tempoDe(d) / 60).toFixed(1) },
+        { label: 'Consistência', valor: (d) => d.consistencia },
+        { label: 'Modificação', valor: (d) => d.modificacao },
+        { label: 'Via', valor: (d) => (d.via_enteral === 'Não se aplica' ? 'Oral' : d.via_enteral) },
+        { label: 'Acompanhante', valor: (d) => (d.acompanhante_refeicao ? 'Sim' : 'Não') },
+        { label: 'Status', valor: (d) => DIET_STATUS[d.status].label },
+        { label: 'Início', valor: (d) => formatDateTime(d.inicio_em || d.criado_em) },
+        { label: 'Prescrito por', valor: (d) => d.prescrito_por || '' },
+      ],
+      lista,
+    )
+    toast.success('Arquivo CSV gerado.')
   }
 
   function imprimirMapa() {
@@ -193,11 +275,12 @@ export default function Nutricao() {
 
   return (
     <div className="space-y-5">
-      <KpiGrid>
+      <KpiGrid className="xl:grid-cols-5">
         <KpiCard label="Dietas ativas" value={kpis.ativas} icon={Salad} tone="primary" />
+        <KpiCard label="Em observação" value={kpis.observacao} hint={`Alerta acima de ${OBSERVATION_HOURS.limite}h`} icon={Eye} tone={kpis.observacao ? 'amber' : 'slate'} />
+        <KpiCard label="Tempo excedido" value={kpis.excedidos} icon={Clock} tone={kpis.excedidos ? 'red' : 'emerald'} />
         <KpiCard label="Terapia enteral" value={kpis.enteral} icon={UtensilsCrossed} tone="violet" />
-        <KpiCard label="Acompanhantes com refeição" value={kpis.acompanhantes} icon={UtensilsCrossed} tone="accent" />
-        <KpiCard label="Suspensas" value={kpis.suspensas} icon={Salad} tone={kpis.suspensas ? 'amber' : 'slate'} />
+        <KpiCard label="Acompanhantes" value={kpis.acompanhantes} icon={UtensilsCrossed} tone="accent" />
       </KpiGrid>
 
       <div className="flex flex-wrap gap-2">
@@ -213,31 +296,48 @@ export default function Nutricao() {
         <Card>
           <CardHeader
             title="Prescrição de dietas"
-            description="Dieta por prontuário e leito — consistência, modificação terapêutica e via de administração"
+            description="Dieta por prontuário e leito — consistência, modificação terapêutica, via e regime de permanência"
             icon={Salad}
             actions={
-              podeCriar ? (
-                <button type="button" className="btn-primary" onClick={abrirNova}>
-                  <Plus className="h-4 w-4" /> Nova prescrição
+              <>
+                <button type="button" className="btn-ghost" onClick={exportar}>
+                  <Download className="h-4 w-4" /> CSV
                 </button>
-              ) : (
-                <Badge className="border-slate-200 bg-slate-100 text-slate-500">
-                  <Lock className="h-3 w-3" /> Somente leitura
-                </Badge>
-              )
+                {podeCriar ? (
+                  <button type="button" className="btn-primary" onClick={abrirNova}>
+                    <Plus className="h-4 w-4" /> Nova prescrição
+                  </button>
+                ) : (
+                  <Badge className="border-slate-200 bg-slate-100 text-slate-500">
+                    <Lock className="h-3 w-3" /> Somente leitura
+                  </Badge>
+                )}
+              </>
             }
           />
 
-          <div className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 sm:grid-cols-3">
-            <SearchInput value={busca} onChange={setBusca} placeholder="Prontuário, leito ou dieta..." className="sm:col-span-2" />
-            <Select value={filtroSetor} onChange={(event) => setFiltroSetor(event.target.value)}>
-              <option value="todos">Todos os setores</option>
-              {BED_SECTORS.map((setor) => (
-                <option key={setor.setor} value={setor.setor}>
-                  {setor.setor}
-                </option>
+          <div className="space-y-3 border-b border-border px-5 py-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <SearchInput value={busca} onChange={setBusca} placeholder="Prontuário, leito ou dieta..." className="sm:col-span-2" />
+              <Select value={filtroSetor} onChange={(event) => setFiltroSetor(event.target.value)}>
+                <option value="todos">Todos os setores</option>
+                {BED_SECTORS.map((setor) => (
+                  <option key={setor.setor} value={setor.setor}>
+                    {setor.setor}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Pill active={filtroRegime === 'todos'} onClick={() => setFiltroRegime('todos')}>
+                Todos os regimes ({dietas.length})
+              </Pill>
+              {Object.entries(DIET_REGIMES).map(([key, config]) => (
+                <Pill key={key} active={filtroRegime === key} onClick={() => setFiltroRegime(key)}>
+                  {config.label} ({dietas.filter((dieta) => (dieta.regime || 'internacao') === key).length})
+                </Pill>
               ))}
-            </Select>
+            </div>
           </div>
 
           {lista.length === 0 ? (
@@ -249,6 +349,8 @@ export default function Nutricao() {
                   <Th>Leito</Th>
                   <Th>Prontuário</Th>
                   <Th>Setor</Th>
+                  <Th>Regime</Th>
+                  <Th>Tempo</Th>
                   <Th>Consistência</Th>
                   <Th>Modificação</Th>
                   <Th>Via</Th>
@@ -257,37 +359,52 @@ export default function Nutricao() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {lista.map((dieta) => (
-                  <tr key={dieta.id} className="transition hover:bg-slate-50">
-                    <Td className="font-semibold">{dieta.leito}</Td>
-                    <Td className="font-mono text-xs font-semibold text-primary">{dieta.prontuario}</Td>
-                    <Td className="text-slate-500">{dieta.setor}</Td>
-                    <Td>{dieta.consistencia}</Td>
-                    <Td className="text-slate-500">{dieta.modificacao}</Td>
-                    <Td className="text-slate-500">
-                      {dieta.via_enteral === 'Não se aplica' ? 'Oral' : dieta.via_enteral}
-                      {dieta.acompanhante_refeicao ? <Badge className="ml-2 border-accent/30 bg-accent-light text-accent-dark">+ acompanhante</Badge> : null}
-                    </Td>
-                    <Td>
-                      <StatusBadge map={DIET_STATUS} value={dieta.status} />
-                    </Td>
-                    <Td className="text-right">
-                      <div className="inline-flex gap-1">
-                        {podeEditar ? (
-                          <button type="button" onClick={() => abrirEdicao(dieta)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                        {podeExcluir ? (
-                          <button type="button" onClick={() => excluir(dieta)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                        {!podeEditar && !podeExcluir ? <span className="text-xs text-slate-300">—</span> : null}
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
+                {lista.map((dieta) => {
+                  const minutos = tempoDe(dieta)
+                  const regime = dieta.regime || 'internacao'
+                  const excedido = regime === 'observacao' && minutos / 60 >= OBSERVATION_HOURS.limite
+                  return (
+                    <tr key={dieta.id} className={`transition ${excedido ? 'bg-red-50' : 'hover:bg-slate-50'}`}>
+                      <Td className="font-semibold">{dieta.leito}</Td>
+                      <Td className="font-mono text-xs font-semibold text-primary">{dieta.prontuario}</Td>
+                      <Td className="text-slate-500">{dieta.setor}</Td>
+                      <Td>
+                        <StatusBadge map={DIET_REGIMES} value={regime} />
+                      </Td>
+                      <Td>
+                        <span className={`inline-flex items-center gap-1 ${toneDoTempo(minutos, regime)}`}>
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatDuration(minutos)}
+                          {excedido ? ' · EXCEDIDO' : ''}
+                        </span>
+                      </Td>
+                      <Td>{dieta.consistencia}</Td>
+                      <Td className="text-slate-500">{dieta.modificacao}</Td>
+                      <Td className="text-slate-500">
+                        {dieta.via_enteral === 'Não se aplica' ? 'Oral' : dieta.via_enteral}
+                        {dieta.acompanhante_refeicao ? <Badge className="ml-2 border-accent/30 bg-accent-light text-accent-dark">+ acomp.</Badge> : null}
+                      </Td>
+                      <Td>
+                        <StatusBadge map={DIET_STATUS} value={dieta.status} />
+                      </Td>
+                      <Td className="text-right">
+                        <div className="inline-flex gap-1">
+                          {podeEditar ? (
+                            <button type="button" onClick={() => abrirEdicao(dieta)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                          {podeExcluir ? (
+                            <button type="button" onClick={() => excluir(dieta)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                          {!podeEditar && !podeExcluir ? <span className="text-xs text-slate-300">—</span> : null}
+                        </div>
+                      </Td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </TableWrapper>
           )}
@@ -317,6 +434,7 @@ export default function Nutricao() {
                   <tr>
                     <Th>Setor</Th>
                     <Th>Pacientes</Th>
+                    <Th>Em observação</Th>
                     <Th>Acompanhantes</Th>
                     <Th>Enteral</Th>
                     <Th>Total</Th>
@@ -328,6 +446,7 @@ export default function Nutricao() {
                     <tr key={registro.setor} className="transition hover:bg-slate-50">
                       <Td className="font-semibold">{registro.setor}</Td>
                       <Td>{registro.total}</Td>
+                      <Td>{registro.observacao}</Td>
                       <Td>{registro.acompanhantes}</Td>
                       <Td>{registro.enteral}</Td>
                       <Td className="font-bold text-primary">{registro.total + registro.acompanhantes}</Td>
@@ -363,17 +482,27 @@ export default function Nutricao() {
         }
       >
         <form id="form-dieta" onSubmit={salvar} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Leito" error={errors.leito}>
+          <Field label="Leito" error={errors.leito} hint={`${leitos.length} leitos cadastrados · ${leitosAgrupados.ocupados.length} ocupados`}>
             <Select value={form.leito} onChange={(event) => selecionarLeito(event.target.value)}>
               <option value="">Selecione...</option>
-              {leitos
-                .filter((leito) => leito.status === 'ocupado' || leito.nome === form.leito)
-                .map((leito) => (
-                  <option key={leito.id} value={leito.nome}>
-                    {leito.nome} — {leito.setor}
-                    {leito.prontuario ? ` (prontuário ${leito.prontuario})` : ''}
-                  </option>
-                ))}
+              {leitosAgrupados.ocupados.length ? (
+                <optgroup label="Leitos ocupados">
+                  {leitosAgrupados.ocupados.map((leito) => (
+                    <option key={leito.id} value={leito.nome}>
+                      {leito.nome} — {leito.setor} (prontuário {leito.prontuario})
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {leitosAgrupados.outros.length ? (
+                <optgroup label="Demais leitos">
+                  {leitosAgrupados.outros.map((leito) => (
+                    <option key={leito.id} value={leito.nome}>
+                      {leito.nome} — {leito.setor}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </Select>
           </Field>
           <Field label="Prontuário" error={errors.prontuario}>
@@ -389,8 +518,29 @@ export default function Nutricao() {
               ))}
             </Select>
           </Field>
+          <Field
+            label="Regime de permanência"
+            hint={form.regime === 'observacao' ? `O tempo é contado a partir de agora. Alerta em ${OBSERVATION_HOURS.limite}h.` : 'Contagem de tempo iniciada na prescrição.'}
+          >
+            <Select value={form.regime} onChange={(event) => setForm({ ...form, regime: event.target.value })}>
+              {Object.entries(DIET_REGIMES).map(([key, config]) => (
+                <option key={key} value={key}>
+                  {config.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Data da prescrição">
             <Input type="date" value={form.data_prescricao} onChange={(event) => setForm({ ...form, data_prescricao: event.target.value })} />
+          </Field>
+          <Field label="Status">
+            <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+              {Object.entries(DIET_STATUS).map(([key, config]) => (
+                <option key={key} value={key}>
+                  {config.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Consistência">
             <Select value={form.consistencia} onChange={(event) => setForm({ ...form, consistencia: event.target.value })}>
@@ -410,20 +560,11 @@ export default function Nutricao() {
               ))}
             </Select>
           </Field>
-          <Field label="Via de administração">
+          <Field label="Via de administração" className="sm:col-span-2">
             <Select value={form.via_enteral} onChange={(event) => setForm({ ...form, via_enteral: event.target.value })}>
               {ENTERAL_ROUTES.map((item) => (
                 <option key={item} value={item}>
                   {item === 'Não se aplica' ? 'Oral' : item}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Status">
-            <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-              {Object.entries(DIET_STATUS).map(([key, config]) => (
-                <option key={key} value={key}>
-                  {config.label}
                 </option>
               ))}
             </Select>
@@ -456,6 +597,7 @@ export default function Nutricao() {
               <tr className="bg-gray-200">
                 <th className="border border-black px-2 py-1 text-left">Setor</th>
                 <th className="border border-black px-2 py-1 text-left">Pacientes</th>
+                <th className="border border-black px-2 py-1 text-left">Em observação</th>
                 <th className="border border-black px-2 py-1 text-left">Acompanhantes</th>
                 <th className="border border-black px-2 py-1 text-left">Enteral</th>
                 <th className="border border-black px-2 py-1 text-left">Total</th>
@@ -467,6 +609,7 @@ export default function Nutricao() {
                 <tr key={registro.setor}>
                   <td className="border border-black px-2 py-1">{registro.setor}</td>
                   <td className="border border-black px-2 py-1">{registro.total}</td>
+                  <td className="border border-black px-2 py-1">{registro.observacao}</td>
                   <td className="border border-black px-2 py-1">{registro.acompanhantes}</td>
                   <td className="border border-black px-2 py-1">{registro.enteral}</td>
                   <td className="border border-black px-2 py-1 font-bold">{registro.total + registro.acompanhantes}</td>

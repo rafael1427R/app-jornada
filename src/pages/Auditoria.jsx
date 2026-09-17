@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ScrollText, ShieldCheck, User } from 'lucide-react'
+import { Download, ScrollText, ShieldCheck, User } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { Card, CardHeader, EmptyState, Input, KpiCard, KpiGrid, LoadingState, Pill, SearchInput, StatusBadge, TableWrapper, Td, Th } from '@/components/ui'
 import { AUDIT_ACTIONS } from '@/lib/constants'
 import { dateOf, formatDateTime, matches, todayISO } from '@/lib/format'
+import { baixarCsv, carimboArquivo } from '@/lib/csv'
 
 export default function Auditoria() {
   const { items: registros, loading } = useCollection('auditoria')
@@ -31,6 +32,24 @@ export default function Auditoria() {
     }
   }, [registros])
 
+  function exportar() {
+    baixarCsv(
+      carimboArquivo('auditoria'),
+      [
+        { label: 'Data', valor: (r) => formatDateTime(r.data) },
+        { label: 'Usuário', valor: (r) => r.usuario },
+        { label: 'Função', valor: (r) => r.funcao },
+        { label: 'Ação', valor: (r) => AUDIT_ACTIONS[r.acao]?.label || r.acao },
+        { label: 'Entidade', valor: (r) => r.entidade },
+        { label: 'Registro', valor: (r) => r.referencia },
+        { label: 'Prontuário', valor: (r) => r.prontuario },
+        { label: 'Setor', valor: (r) => r.setor },
+        { label: 'Descrição', valor: (r) => r.detalhe },
+      ],
+      lista,
+    )
+  }
+
   if (loading) return <LoadingState />
 
   return (
@@ -43,7 +62,16 @@ export default function Auditoria() {
       </KpiGrid>
 
       <Card>
-        <CardHeader title="Log de auditoria" description="Rastreabilidade das ações realizadas no sistema — quem fez, o quê e quando" icon={ScrollText} />
+        <CardHeader
+          title="Log de auditoria"
+          description="Rastreabilidade das ações realizadas no sistema — quem fez, o quê e quando"
+          icon={ScrollText}
+          actions={
+            <button type="button" className="btn-ghost" onClick={exportar}>
+              <Download className="h-4 w-4" /> Exportar CSV
+            </button>
+          }
+        />
 
         <div className="space-y-3 border-b border-border px-5 py-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -309,6 +309,9 @@ create table if not exists public.dietas (
   consistencia          text        not null default 'Geral',
   modificacao           text        default 'Sem modificação',
   via_enteral           text        default 'Não se aplica',
+  regime                text        not null default 'internacao'
+                        check (regime in ('internacao', 'observacao')),
+  inicio_em             timestamptz default now(),
   dieta_prescrita       text        default '',
   acompanhante_refeicao boolean     not null default false,
   observacoes           text        default '',
@@ -320,7 +323,12 @@ create table if not exists public.dietas (
   atualizado_em         timestamptz not null default now()
 );
 
+-- Instalações anteriores ganham as colunas de regime sem perder dados:
+alter table public.dietas add column if not exists regime text not null default 'internacao';
+alter table public.dietas add column if not exists inicio_em timestamptz default now();
+
 create index if not exists dietas_prontuario_idx on public.dietas (prontuario);
+create index if not exists dietas_regime_idx on public.dietas (regime);
 create index if not exists dietas_status_idx on public.dietas (status);
 create index if not exists dietas_setor_idx on public.dietas (setor);
 

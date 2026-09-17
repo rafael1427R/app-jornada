@@ -149,6 +149,16 @@ export const BED_SECTORS = [
 
 export const DIET_CONSISTENCY = ['Geral', 'Branda', 'Pastosa', 'Líquida completa', 'Líquida restrita', 'Zero (jejum)']
 
+/** Cores das etiquetas por consistência (usadas na impressão colorida). */
+export const DIET_COLORS = {
+  'Geral': '#10b981',
+  'Branda': '#0ea5e9',
+  'Pastosa': '#8b5cf6',
+  'Líquida completa': '#06b6d4',
+  'Líquida restrita': '#f59e0b',
+  'Zero (jejum)': '#ef4444',
+}
+
 export const DIET_MODIFICATIONS = [
   'Sem modificação',
   'Hipossódica',
@@ -170,6 +180,15 @@ export const MEALS = [
   { id: 'jantar', label: 'Jantar', hora: '18:00' },
   { id: 'ceia', label: 'Ceia', hora: '21:00' },
 ]
+
+/** Regime de permanência do paciente que recebe a dieta. */
+export const DIET_REGIMES = {
+  internacao: { label: 'Internação', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
+  observacao: { label: 'Em observação', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+}
+
+/** Faixas de alerta do tempo de permanência, em horas. */
+export const OBSERVATION_HOURS = { atencao: 6, critico: 12, limite: 24 }
 
 export const DIET_STATUS = {
   ativa: { label: 'Ativa', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },

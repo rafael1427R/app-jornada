@@ -33,7 +33,7 @@ export const COLLECTIONS = {
   psAltas: { key: 'ps-altas-v1', table: 'ps_altas', seed: seedPsAltas, dateFields: ['data', 'admitido_em'] },
   usuarios: { key: 'sys-users-v1', table: 'usuarios', seed: seedUsuarios, dateFields: [] },
   auditoria: { key: 'audit-v1', table: 'log_auditoria', seed: seedAuditoria, dateFields: ['data'] },
-  dietas: { key: 'dietas-v1', table: 'dietas', seed: seedDietas, dateFields: ['data_prescricao'] },
+  dietas: { key: 'dietas-v1', table: 'dietas', seed: seedDietas, dateFields: ['data_prescricao', 'inicio_em'] },
   produtos: { key: 'estoque-v1', table: 'produtos_estoque', seed: seedProdutos, dateFields: ['validade'] },
   movimentacoes: { key: 'estoque-mov-v1', table: 'movimentacoes_estoque', seed: seedMovimentacoes, dateFields: ['data'] },
 }

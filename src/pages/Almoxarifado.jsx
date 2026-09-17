@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Lock, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Download, Lock, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui'
 import { STOCK_CATEGORIES, STOCK_MOVES, STOCK_UNITS } from '@/lib/constants'
 import { formatDate, formatDateTime, matches, todayISO } from '@/lib/format'
+import { baixarCsv, carimboArquivo } from '@/lib/csv'
 
 const EMPTY_PRODUTO = {
   nome: '',
@@ -169,6 +170,26 @@ export default function Almoxarifado() {
     setErrors({})
   }
 
+  function exportarSaldo() {
+    baixarCsv(
+      carimboArquivo('estoque'),
+      [
+        { label: 'Item', valor: (p) => p.nome },
+        { label: 'Categoria', valor: (p) => p.categoria },
+        { label: 'Unidade', valor: (p) => p.unidade },
+        { label: 'Saldo', valor: (p) => p.estoque_atual },
+        { label: 'Mínimo', valor: (p) => p.estoque_minimo },
+        { label: 'Custo unitário', valor: (p) => Number(p.custo_unitario || 0).toFixed(2).replace('.', ',') },
+        { label: 'Valor total', valor: (p) => (Number(p.estoque_atual || 0) * Number(p.custo_unitario || 0)).toFixed(2).replace('.', ',') },
+        { label: 'Fornecedor', valor: (p) => p.fornecedor || '' },
+        { label: 'Validade', valor: (p) => (p.validade ? formatDate(p.validade) : '') },
+        { label: 'Situação', valor: (p) => (critico(p) ? 'Repor' : 'OK') },
+      ],
+      lista,
+    )
+    toast.success('Arquivo CSV gerado.')
+  }
+
   if (loading) return <LoadingState />
 
   return (
@@ -199,15 +220,20 @@ export default function Almoxarifado() {
             description="Controle de insumos da Unidade de Alimentação e Nutrição"
             icon={Package}
             actions={
-              podeCriar ? (
-                <button type="button" className="btn-primary" onClick={abrirNovoProduto}>
-                  <Plus className="h-4 w-4" /> Novo item
+              <>
+                <button type="button" className="btn-ghost" onClick={exportarSaldo}>
+                  <Download className="h-4 w-4" /> CSV
                 </button>
-              ) : (
-                <Badge className="border-slate-200 bg-slate-100 text-slate-500">
-                  <Lock className="h-3 w-3" /> Somente leitura
-                </Badge>
-              )
+                {podeCriar ? (
+                  <button type="button" className="btn-primary" onClick={abrirNovoProduto}>
+                    <Plus className="h-4 w-4" /> Novo item
+                  </button>
+                ) : (
+                  <Badge className="border-slate-200 bg-slate-100 text-slate-500">
+                    <Lock className="h-3 w-3" /> Somente leitura
+                  </Badge>
+                )}
+              </>
             }
           />
 
