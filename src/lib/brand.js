@@ -15,7 +15,11 @@ export const LGPD_NOTICE = 'Conformidade LGPD — Sem dados pessoais identificá
  * Substitua os arquivos mantendo exatamente estes nomes — todo o sistema,
  * inclusive as impressões, passa a usar a arte oficial automaticamente.
  */
+const EXTENSOES = ['png', 'svg', 'webp', 'jpg', 'jpeg']
+
+const caminhos = (nome) => EXTENSOES.map((extensao) => `/logos/${nome}.${extensao}`)
+
 export const LOGOS = {
-  hospital: ['/logos/hospital.png', '/logos/hospital.svg', '/logos/hospital.jpg'],
-  isac: ['/logos/isac.png', '/logos/isac.svg', '/logos/isac.jpg'],
+  hospital: caminhos('hospital'),
+  isac: caminhos('isac'),
 }
