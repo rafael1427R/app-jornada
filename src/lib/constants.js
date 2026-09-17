@@ -236,6 +236,22 @@ export const DIET_STATUS = {
   encerrada: { label: 'Encerrada', badge: 'bg-slate-100 text-slate-600 border-slate-200' },
 }
 
+/** Etapas do atendimento nutricional, da prescrição médica à entrega à UAN. */
+export const NUTRITION_STAGES = [
+  { id: 1, titulo: 'Prescrição médica', detalhe: 'Toda dieta parte de prescrição médica, por via oral ou por sonda', icone: 'FileText' },
+  { id: 2, titulo: 'Avaliação nutricional', detalhe: 'Triagem, antropometria, estado nutricional, aceitação e alergias', icone: 'ClipboardCheck' },
+  { id: 3, titulo: 'Conduta nutricional', detalhe: 'Consistência, modificação terapêutica, adequações, fórmula e volume', icone: 'Salad' },
+  { id: 4, titulo: 'Visita à beira-leito', detalhe: 'Confirmação de aceitação, diurese, evacuação e mudanças do quadro', icone: 'Stethoscope' },
+  { id: 5, titulo: 'Atualização da etiqueta', detalhe: 'Geração com leito, setor, dieta e identificação definida pelo serviço', icone: 'Tags' },
+  { id: 6, titulo: 'Entrega à UAN', detalhe: 'Envio dentro do horário para a produção e a distribuição', icone: 'Send' },
+]
+
+/** Limite de permanência em observação no Pronto-Socorro. */
+export const PS_OBSERVATION_LIMIT_HOURS = 20
+
+/** Cores validadas para os gráficos do painel (checagem de CVD e contraste). */
+export const CHART_INK = { primaria: '#1a6bb5', secundaria: '#00a99d', grade: '#e2e8f0', texto: '#64748b' }
+
 /** Prazos do plantão da nutrição (07h às 19h). */
 export const NUTRITION_FLOW = [
   { hora: '07:00', titulo: 'Início do plantão', detalhe: 'Conferência de pacientes, prescrições, alterações e cardápio do dia' },

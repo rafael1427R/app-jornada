@@ -60,7 +60,7 @@ A sessão fica em `localStorage` (`sys-session-v1`) e os usuários em
 | 10 | Visitantes | `/visitantes` | Permanência de 1 hora, contador MM:SS, crachá térmico e relatório |
 | 11 | Leitos | `/leitos` | 150 leitos em 9 setores: CRUD de leitos, ocupação por prontuário, alta com motivo (alta/transferência/óbito), barra de ocupação por setor e vínculo com o acompanhante |
 | 12 | Pronto Socorro Digital | `/pronto-socorro` | 30 quartos digitais: admissão, evolução clínica e alta |
-| 13 | Nutrição / Dietas | `/nutricao` | Prescrição por prontuário/leito: consistência, modificação terapêutica, adequações complementares, via de alimentação, terapia enteral, regime com cronômetro, mapa de refeições e **fluxo do plantão com os prazos da UAN** |
+| 13 | Nutrição / Dietas | `/nutricao` | Seis abas: **Painel** (KPIs e gráficos), **Prescrições**, **Observação PS**, **Mapa de refeições**, **Indicadores** e **Fluxograma** |
 | 14 | Avaliação Nutricional | `/avaliacao-nutricional` | Ficha do setor: triagem NRS-2002, antropometria com IMC e perda de peso calculados, avaliação clínica e dietética, exames, diagnóstico, conduta e evoluções — impressa em A4 |
 | 15 | Etiquetas de Dieta | `/etiquetas` | Impressão 80mm × 40mm por refeição e por listagem da UAN, colorida ou preto e branco, identificação por prontuário ou nominal |
 | 16 | Almoxarifado | `/almoxarifado` | Estoque da UAN: saldo, entrada/saída com validação de saldo, alerta de mínimo e histórico |
@@ -355,6 +355,19 @@ mãe, campos preenchidos na prescrição. A escolha é do serviço: a LGPD permi
 tratamento de dados de saúde para a assistência (art. 11, II, "f"), e a
 identificação nominal na bandeja é prática consolidada; o modo prontuário
 existe para quem prefere não circular nome em impresso.
+
+## Indicadores e gráficos
+
+O painel da Nutrição usa duas cores validadas para gráfico (`CHART_INK`):
+`#1a6bb5` e `#00a99d`. Elas passaram na checagem de faixa de luminosidade,
+piso de croma, separação para daltonismo (ΔE 19,4 no pior par) e piso de
+visão normal. O teal fica em 2,86:1 de contraste com a superfície — abaixo de
+3:1 —, por isso **todas as barras levam o valor rotulado na ponta**, que é o
+alívio exigido nesse caso.
+
+Cada gráfico tem uma série só, então usa **uma cor única** e a identidade vem
+do eixo — nunca uma paleta arco-íris por categoria. Os mesmos números aparecem
+em tabela na aba Indicadores, que serve de alternativa acessível.
 
 ## Exportação para planilha
 

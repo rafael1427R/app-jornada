@@ -37,6 +37,7 @@ import {
   FEEDING_ROUTES,
   MEALS,
   NUTRITION_FLOW,
+  NUTRITION_STAGES,
   OBSERVATION_HOURS,
   grupoDaDieta,
 } from '@/lib/constants'
@@ -47,6 +48,9 @@ import { baixarCsv, carimboArquivo } from '@/lib/csv'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
 import PrintHeader from '@/components/PrintHeader'
+import PainelNutricao from '@/components/nutricao/PainelNutricao'
+import ObservacaoPs from '@/components/nutricao/ObservacaoPs'
+import IndicadoresNutricao from '@/components/nutricao/IndicadoresNutricao'
 
 const EMPTY = {
   prontuario: '',
@@ -86,6 +90,9 @@ export function toneDoTempo(minutos, regime) {
 export default function Nutricao() {
   const { items: dietas, loading, create, update, remove } = useCollection('dietas')
   const { items: leitos, update: atualizarLeito } = useCollection('leitos')
+  const { items: psLeitos } = useCollection('psLeitos')
+  const { items: visitantes } = useCollection('visitantes')
+  const { items: avaliacoes } = useCollection('avaliacoes')
   const { user, canDo } = useAuth()
   const toast = useToast()
   const registrarLog = useAudit()
@@ -95,7 +102,7 @@ export default function Nutricao() {
   const podeEditar = canDo('nutricao', 'editar')
   const podeExcluir = canDo('nutricao', 'excluir')
 
-  const [aba, setAba] = useState('prescricoes')
+  const [aba, setAba] = useState('painel')
   const [busca, setBusca] = useState('')
   const [filtroSetor, setFiltroSetor] = useState('todos')
   const [filtroRegime, setFiltroRegime] = useState('todos')
@@ -156,6 +163,29 @@ export default function Nutricao() {
   }, [ativas])
 
   const totalRefeicoes = mapaRefeicoes.reduce((total, item) => total + item.total + item.acompanhantes, 0)
+
+  /** Abre a prescrição já preenchida a partir de um paciente do Pronto-Socorro. */
+  function prescreverParaPs(paciente) {
+    if (!podeCriar && !podeEditar) {
+      toast.error('Seu perfil não tem permissão para prescrever dietas.')
+      return
+    }
+    const existente = dietas.find((dieta) => dieta.prontuario === paciente.prontuario && dieta.status === 'ativa')
+    if (existente) {
+      abrirEdicao(existente)
+      return
+    }
+    setForm({
+      ...EMPTY,
+      prontuario: paciente.prontuario,
+      leito: paciente.nome,
+      setor: 'Emergência',
+      regime: 'observacao',
+      observacoes: paciente.queixa ? `Queixa no PS: ${paciente.queixa}` : '',
+    })
+    setErrors({})
+    setModal('nova')
+  }
 
   function abrirNova() {
     setForm({ ...EMPTY })
@@ -293,6 +323,8 @@ export default function Nutricao() {
 
   return (
     <div className="space-y-5">
+      {/* As abas Painel, Observação e Indicadores trazem os próprios KPIs. */}
+      {['prescricoes', 'mapa', 'fluxo'].includes(aba) ? (
       <KpiGrid className="xl:grid-cols-5">
         <KpiCard label="Dietas ativas" value={kpis.ativas} icon={Salad} tone="primary" />
         <KpiCard label="Em observação" value={kpis.observacao} hint={`Alerta acima de ${OBSERVATION_HOURS.limite}h`} icon={Eye} tone={kpis.observacao ? 'amber' : 'slate'} />
@@ -300,20 +332,36 @@ export default function Nutricao() {
         <KpiCard label="Terapia enteral" value={kpis.enteral} icon={UtensilsCrossed} tone="violet" />
         <KpiCard label="Acompanhantes" value={kpis.acompanhantes} icon={UtensilsCrossed} tone="accent" />
       </KpiGrid>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
+        <Pill active={aba === 'painel'} onClick={() => setAba('painel')}>
+          Painel
+        </Pill>
         <Pill active={aba === 'prescricoes'} onClick={() => setAba('prescricoes')}>
           Prescrições ({dietas.length})
+        </Pill>
+        <Pill active={aba === 'observacao'} onClick={() => setAba('observacao')}>
+          Observação PS ({psLeitos.filter((leito) => leito.status === 'em_atendimento').length})
         </Pill>
         <Pill active={aba === 'mapa'} onClick={() => setAba('mapa')}>
           Mapa de refeições ({totalRefeicoes})
         </Pill>
+        <Pill active={aba === 'indicadores'} onClick={() => setAba('indicadores')}>
+          Indicadores
+        </Pill>
         <Pill active={aba === 'fluxo'} onClick={() => setAba('fluxo')}>
-          Fluxo do plantão
+          Fluxograma
         </Pill>
       </div>
 
-      {aba === 'prescricoes' ? (
+      {aba === 'painel' ? (
+        <PainelNutricao dietas={dietas} leitos={leitos} visitantes={visitantes} />
+      ) : aba === 'observacao' ? (
+        <ObservacaoPs psLeitos={psLeitos} dietas={dietas} onPrescrever={prescreverParaPs} />
+      ) : aba === 'indicadores' ? (
+        <IndicadoresNutricao dietas={dietas} avaliacoes={avaliacoes} />
+      ) : aba === 'prescricoes' ? (
         <Card>
           <CardHeader
             title="Prescrição de dietas"
@@ -436,7 +484,20 @@ export default function Nutricao() {
       ) : aba === 'fluxo' ? (
         <div className="space-y-5">
           <Card>
-            <CardHeader title="Fluxo do plantão (07h às 19h)" description="Prazos de atualização e entrega das etiquetas à UAN" icon={ListChecks} />
+            <CardHeader title="Fluxo de atendimento ao paciente" description="Da prescrição médica à entrega das etiquetas na UAN" icon={ListChecks} />
+            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
+              {NUTRITION_STAGES.map((etapa) => (
+                <div key={etapa.id} className="rounded-xl border border-border p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Etapa {etapa.id}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{etapa.titulo}</p>
+                  <p className="mt-1 text-xs text-slate-500">{etapa.detalhe}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Cronograma do plantão (07h às 19h)" description="Prazos de atualização e entrega das etiquetas à UAN" icon={ListChecks} />
             <ol className="relative space-y-0 p-5">
               {NUTRITION_FLOW.map((etapa, indice) => (
                 <li key={etapa.hora} className="relative flex gap-4 pb-6 last:pb-0">
