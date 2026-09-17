@@ -6,7 +6,7 @@ import { SURGERY_STATUS, SURGERY_TYPES } from '@/lib/constants'
 import { formatDate, formatDateTime, matches } from '@/lib/format'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
-import { HOSPITAL_NAME, INSTITUTION_NAME } from '@/lib/brand'
+import PrintHeader from '@/components/PrintHeader'
 
 export default function Prontuarios() {
   const data = useCollections(['cirurgias', 'psLeitos', 'psAltas'])
@@ -185,12 +185,7 @@ export default function Prontuarios() {
       <PrintArea active={Boolean(printData)}>
         {printData ? (
           <div className="p-6 font-sans text-[12px] text-black">
-            <header className="mb-4 border-b-2 border-black pb-2">
-              <h1 className="text-lg font-bold">{HOSPITAL_NAME}</h1>
-              <p className="text-xs">{INSTITUTION_NAME}</p>
-              <p className="mt-1 text-sm font-semibold">Histórico cirúrgico — Prontuário {printData.prontuario}</p>
-              <p className="text-[10px]">Emitido em {formatDateTime(new Date().toISOString())}</p>
-            </header>
+            <PrintHeader titulo={`Histórico cirúrgico — Prontuário ${printData.prontuario}`} subtitulo={`${printData.total} procedimento(s) registrado(s)`} />
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr className="bg-gray-200">

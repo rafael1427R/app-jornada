@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Activity, Eye, EyeOff, Lock, LogIn, ShieldCheck, User } from 'lucide-react'
+import { Eye, EyeOff, Lock, LogIn, ShieldCheck, User } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { APP_NAME, APP_TAGLINE, HOSPITAL_NAME, INSTITUTION_NAME, LGPD_NOTICE } from '@/lib/brand'
@@ -14,7 +15,7 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const nextErrors = {}
     if (!usuario.trim()) nextErrors.usuario = 'Informe o usuário.'
@@ -23,25 +24,28 @@ export default function Login() {
     if (Object.keys(nextErrors).length) return
 
     setSubmitting(true)
-    window.setTimeout(() => {
-      const result = login(usuario.trim(), senha)
-      setSubmitting(false)
+    try {
+      const result = await login(usuario.trim(), senha)
       if (!result.ok) {
         setErrors({ geral: result.error })
         toast.error(result.error)
         return
       }
       toast.success(`Bem-vindo(a), ${result.user.nome}.`)
-    }, 350)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-white p-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-emerald-300 shadow-lg">
-            <Activity className="h-9 w-9" strokeWidth={2.6} />
-          </span>
+          <div className="mb-4 flex items-center justify-center gap-5">
+            <Logo variant="hospital" className="h-12" />
+            <span className="h-10 w-px bg-slate-200" aria-hidden="true" />
+            <Logo variant="isac" className="h-14" />
+          </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-primary">{APP_NAME}</h1>
           <p className="text-sm font-semibold text-slate-500">{APP_TAGLINE} · Centro Cirúrgico</p>
           <p className="mt-2 text-xs text-slate-400">{HOSPITAL_NAME}</p>

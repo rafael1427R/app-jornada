@@ -4,6 +4,7 @@ import { useCollection } from '@/data/store'
 import { MODULES } from '@/lib/constants'
 import { readStorage, writeStorage } from '@/lib/storage'
 import { normalize } from '@/lib/format'
+import { autenticarRemoto } from '@/data/authRemote'
 import { hasAction, normalizePermissions, visibleModules } from '@/lib/permissions'
 
 const AuthContext = createContext(null)
@@ -24,18 +25,38 @@ export function AuthProvider({ children }) {
     return usuarios.find((item) => item.id === session.userId) || null
   }, [session, usuarios])
 
+  const abrirSessao = useCallback((encontrado) => {
+    const nextSession = {
+      userId: encontrado.id,
+      usuario: encontrado.usuario,
+      nome: encontrado.nome,
+      funcao: encontrado.funcao,
+      iniciado_em: new Date().toISOString(),
+    }
+    writeStorage(SESSION_KEY, nextSession)
+    setSession(nextSession)
+    return { ok: true, user: encontrado }
+  }, [])
+
+  /**
+   * Com o Supabase configurado e o `security.sql` aplicado, a senha é
+   * conferida no banco. Caso contrário, cai para a verificação local.
+   */
   const login = useCallback(
-    (usuario, senha) => {
+    async (usuario, senha) => {
+      const remoto = await autenticarRemoto(usuario, senha)
+      if (!remoto.unavailable) {
+        if (!remoto.ok) return remoto
+        return abrirSessao(remoto.user)
+      }
+
       const found = usuarios.find((item) => normalize(item.usuario) === normalize(usuario))
       if (!found) return { ok: false, error: 'Usuário não encontrado.' }
       if (String(found.senha) !== String(senha)) return { ok: false, error: 'Senha incorreta.' }
       if (found.ativo === false) return { ok: false, error: 'Usuário inativo. Procure o administrador.' }
-      const nextSession = { userId: found.id, usuario: found.usuario, nome: found.nome, funcao: found.funcao, iniciado_em: new Date().toISOString() }
-      writeStorage(SESSION_KEY, nextSession)
-      setSession(nextSession)
-      return { ok: true, user: found }
+      return abrirSessao(found)
     },
-    [usuarios],
+    [usuarios, abrirSessao],
   )
 
   const logout = useCallback(() => {

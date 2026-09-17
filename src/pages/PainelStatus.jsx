@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Activity, Clock, Info, Search, ShieldCheck } from 'lucide-react'
+import { Clock, Info, Search, ShieldCheck } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { useCollections } from '@/data/store'
 import { LoadingState } from '@/components/ui'
 import { SURGERY_STATUS } from '@/lib/constants'
@@ -40,8 +41,8 @@ export default function PainelStatus() {
       <header className="sticky top-0 z-20 bg-primary text-white shadow">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-400/90 text-primary-dark">
-              <Activity className="h-6 w-6" strokeWidth={2.6} />
+            <span className="flex items-center rounded-lg bg-white px-2.5 py-2">
+              <Logo variant="hospital" className="h-8" />
             </span>
             <div>
               <p className="text-lg font-bold leading-tight">Painel de Acompanhantes</p>
@@ -105,7 +106,14 @@ export default function PainelStatus() {
             <ShieldCheck className="h-4 w-4 text-emerald-600" />
             <p className="text-xs font-semibold text-emerald-700">Sem dados pessoais identificáveis — LGPD (Lei 13.709/2018)</p>
           </div>
-          <p className="text-xs text-slate-400">{APP_NAME} · atualização automática a cada 30 segundos</p>
+          <div className="flex items-center gap-3">
+            <Logo variant="isac" className="h-12" />
+            <p className="text-left text-xs text-slate-400">
+              {APP_NAME} · atualização automática a cada 30 segundos
+              <br />
+              {INSTITUTION_NAME}
+            </p>
+          </div>
         </footer>
       </main>
     </div>

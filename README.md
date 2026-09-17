@@ -85,6 +85,24 @@ O menu lateral exibe **apenas os módulos liberados** para o usuário conectado.
 
 ---
 
+## Identidade visual
+
+As logos oficiais ficam em `public/logos/` e são usadas em todo o sistema —
+tela de login, barra lateral, painel público, crachás, etiquetas e todos os
+relatórios impressos.
+
+| Arquivo | Uso |
+| --- | --- |
+| `public/logos/hospital.png` | Hospital Regional Chagas Rodrigues (formato horizontal) |
+| `public/logos/isac.png` | ISAC — Instituto Saúde e Cidadania (formato vertical) |
+
+Basta substituir os dois arquivos mantendo os nomes; não é preciso reiniciar o
+servidor, só atualizar a página. São aceitos `.png`, `.svg` e `.jpg` (a ordem
+de procura está em `LOGOS`, em `src/lib/brand.js`). Enquanto o arquivo oficial
+não estiver na pasta, o sistema mostra uma marca substituta — nada quebra.
+
+Para trocar o nome do produto, altere `APP_NAME` no mesmo arquivo.
+
 ## Conformidade LGPD
 
 - **Nenhum nome de paciente** é armazenado ou exibido — apenas o número de
@@ -110,7 +128,9 @@ automaticamente — nenhuma alteração de código é necessária.
 2. Abra **SQL Editor** e execute, nesta ordem:
    - `supabase/schema.sql` (tabelas, índices, triggers, RLS e a view pública)
    - `supabase/seed.sql` (admin master, salas, equipe, equipamentos,
-     150 leitos, 8 leitos de RPA e 30 quartos do PS)
+     150 leitos, 8 leitos de RPA, 30 quartos do PS e o almoxarifado)
+   - `supabase/security.sql` (hash de senhas, login no banco e auditoria
+     de acesso — recomendado desde o primeiro dia)
 3. Em **Project Settings → API**, copie a URL e a `anon key`.
 
 ### 2. Configurar o front-end
@@ -150,17 +170,54 @@ Reinicie o `npm run dev`. O rodapé da barra lateral passa a indicar
 A view `painel_acompanhantes` expõe somente prontuário, horário e status do
 dia — é a base mínima para o painel público.
 
-### 4. Segurança — leia antes de publicar na internet
+### 4. Endurecimento de segurança (`security.sql`)
 
-As políticas de RLS entregues liberam acesso para a chave anônima, o que
-atende a uma instalação **em rede interna do hospital**, e as senhas ficam em
-texto puro na tabela `usuarios` (exigência do fluxo `admin/1123` pedido no
-projeto). Para expor o sistema fora da rede interna, faça antes:
+Rode `supabase/security.sql` depois do `schema.sql`. Ele aplica, de imediato:
 
-1. Migrar a autenticação para o **Supabase Auth** (e-mail/senha ou SSO).
-2. Trocar `to anon, authenticated` por `to authenticated` nas políticas e
-   restringir por função/setor.
-3. Remover a coluna `senha` de `usuarios`, passando a usar `auth.users`.
+| Proteção | O que muda |
+| --- | --- |
+| **Hash de senha (bcrypt)** | As senhas deixam de existir em texto puro; um trigger aplica o hash em todo insert/update e converte as já existentes |
+| **Login dentro do banco** | A função `autenticar_usuario` confere a senha no servidor; o navegador nunca recebe o hash |
+| **Coluna `senha` invisível** | `REVOKE`/`GRANT` por coluna: o front-end lê todas as colunas de `usuarios`, menos a senha |
+| **Auditoria de acesso** | Toda tentativa recusada (usuário inexistente, senha errada, usuário inativo) vira registro no Log de Auditoria |
+| **Proteção do Master** | Trigger impede excluir ou desativar o Administrador Master, mesmo por SQL direto |
+
+O app detecta sozinho se o `security.sql` foi aplicado: havendo a função, o
+login passa a ser feito por ela; se não, usa a verificação local. Não é preciso
+mexer em configuração.
+
+### 5. Limite honesto desta arquitetura
+
+Enquanto o login for o da tabela `usuarios`, o navegador usa a **chave
+anônima**, e qualquer política aberta a `anon` vale para quem tiver essa chave
+— que, por definição, está no código que roda no cliente. Isso é aceitável
+para uma instalação **em rede interna do hospital**; não é aceitável para
+exposição na internet.
+
+A proteção real vem do **Supabase Auth**: cada profissional ganha uma conta, o
+app recebe um JWT e as políticas passam a distinguir quem é quem. O passo a
+passo está comentado no fim do `security.sql` (ETAPA 2).
+
+### 6. Checklist de segurança da plataforma
+
+Configurações que ficam no painel do Supabase, não no código:
+
+- [ ] **MFA na sua conta Supabase** (Account → Security) — é a chave do reino
+- [ ] **Point-in-Time Recovery** (Database → Backups) — o plano gratuito guarda
+      pouco; para prontuário, contrate a retenção adequada
+- [ ] **Network Restrictions** (Settings → Database) — libere apenas a faixa de
+      IP do hospital
+- [ ] **SSL Enforcement** (Settings → Database) — recusa conexão sem TLS
+- [ ] **Rotacionar a `anon key`** se ela vazar (Settings → API)
+- [ ] **Nunca usar a `service_role`** no front-end — ela ignora toda a RLS
+- [ ] **Log Drains / retenção de logs** para rastrear acessos
+- [ ] **Revisar as políticas** após qualquer `schema.sql` novo
+
+### 7. Recomeçar do zero
+
+`supabase/reset.sql` apaga **todas as tabelas e todos os dados** — não há como
+desfazer. Depois dele, rode `schema.sql`, `seed.sql` e `security.sql` de novo.
+Para apagar o projeto inteiro: Settings → General → Delete project.
 
 ---
 
@@ -176,9 +233,12 @@ src/
 ├── data/            Coleções, adaptadores (local/Supabase), store reativo e seeds
 ├── lib/             Marca, constantes, formatação, voz, impressão, relógio
 └── pages/           Uma página por módulo + Login + PainelStatus
+public/logos/         Logos oficiais (hospital.png e isac.png)
 supabase/
 ├── schema.sql       Tabelas, índices, triggers, RLS, view pública
-└── seed.sql         Carga inicial idempotente
+├── seed.sql         Carga inicial idempotente
+├── security.sql     Hash de senhas, login no banco, auditoria de acesso
+└── reset.sql        Apaga tudo (use só para recomeçar do zero)
 legacy/              Export anterior do projeto (mantido apenas para consulta)
 ```
 

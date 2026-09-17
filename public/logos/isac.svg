@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260" width="200" height="260">
+  <g transform="translate(100 95)">
+    <circle r="78" fill="none" stroke="#0f4c81" stroke-width="6"/>
+    <g fill="#1a6bb5" opacity="0.9">
+      <ellipse cx="0" cy="-42" rx="15" ry="38"/>
+      <ellipse cx="0" cy="42" rx="15" ry="38"/>
+      <ellipse cx="-42" cy="0" rx="38" ry="15"/>
+      <ellipse cx="42" cy="0" rx="38" ry="15"/>
+    </g>
+    <g fill="#0f4c81" opacity="0.75" transform="rotate(45)">
+      <ellipse cx="0" cy="-42" rx="13" ry="34"/>
+      <ellipse cx="0" cy="42" rx="13" ry="34"/>
+      <ellipse cx="-42" cy="0" rx="34" ry="13"/>
+      <ellipse cx="42" cy="0" rx="34" ry="13"/>
+    </g>
+  </g>
+  <text x="100" y="212" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="8" fill="#5b6770">ISAC</text>
+  <text x="100" y="240" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" fill="#5b6770">Instituto Saúde e Cidadania</text>
+</svg>

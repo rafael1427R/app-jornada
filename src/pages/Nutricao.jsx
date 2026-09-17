@@ -28,7 +28,7 @@ import { BED_SECTORS, DIET_CONSISTENCY, DIET_MODIFICATIONS, DIET_STATUS, ENTERAL
 import { formatDate, matches, todayISO } from '@/lib/format'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
-import { HOSPITAL_NAME, INSTITUTION_NAME } from '@/lib/brand'
+import PrintHeader from '@/components/PrintHeader'
 
 const EMPTY = {
   prontuario: '',
@@ -450,12 +450,7 @@ export default function Nutricao() {
 
       <PrintArea active={imprimindo}>
         <div className="p-4 font-sans text-[11px] text-black">
-          <header className="mb-3 border-b-2 border-black pb-2">
-            <h1 className="text-base font-bold">{HOSPITAL_NAME}</h1>
-            <p className="text-[10px]">{INSTITUTION_NAME}</p>
-            <p className="mt-1 text-sm font-semibold">Mapa de refeições — {formatDate(todayISO())}</p>
-            <p className="text-[10px]">Total geral: {totalRefeicoes} refeições por horário</p>
-          </header>
+          <PrintHeader titulo={`Mapa de refeições — ${formatDate(todayISO())}`} subtitulo={`Total geral: ${totalRefeicoes} refeições por horário`} />
           <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="bg-gray-200">

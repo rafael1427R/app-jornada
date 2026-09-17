@@ -6,6 +6,7 @@ import { Badge, Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, Lo
 import { MODULES, ROLES, SECTORS } from '@/lib/constants'
 import { ACTION_KEYS, ACTIONS, PERMISSION_TEMPLATES, normalizePermissions } from '@/lib/permissions'
 import { formatDateTime, matches, normalize } from '@/lib/format'
+import { conferirSenhaRemota } from '@/data/authRemote'
 
 const EMPTY = { nome: '', usuario: '', senha: '', funcao: 'Enfermeiro', ativo: true, setores: [], permissoes: {} }
 
@@ -168,7 +169,11 @@ export default function Usuarios() {
     event.preventDefault()
     const nextErrors = {}
     const exigeAtual = senhaModal.id === user?.id
-    if (exigeAtual && String(senhas.atual) !== String(senhaModal.senha)) nextErrors.atual = 'Senha atual incorreta.'
+    if (exigeAtual) {
+      const remoto = await conferirSenhaRemota(senhaModal.id, senhas.atual)
+      const valida = remoto.unavailable ? String(senhas.atual) === String(senhaModal.senha) : remoto.ok
+      if (!valida) nextErrors.atual = 'Senha atual incorreta.'
+    }
     if (String(senhas.nova).length < 4) nextErrors.nova = 'A nova senha deve ter ao menos 4 caracteres.'
     if (senhas.nova !== senhas.confirmacao) nextErrors.confirmacao = 'A confirmação não confere.'
     setErrosSenha(nextErrors)

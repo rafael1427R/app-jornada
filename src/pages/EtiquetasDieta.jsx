@@ -9,7 +9,7 @@ import { BED_SECTORS, MEALS } from '@/lib/constants'
 import { formatDate, matches, todayISO } from '@/lib/format'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
-import { HOSPITAL_NAME, HOSPITAL_SHORT } from '@/lib/brand'
+import { Logo } from '@/components/Logo'
 
 export default function EtiquetasDieta() {
   const { items: dietas, loading } = useCollection('dietas')
@@ -173,8 +173,8 @@ export default function EtiquetasDieta() {
             <div className="grid grid-cols-2 gap-[2mm]">
               {etiquetas.map((etiqueta) => (
                 <div key={etiqueta.chave} style={{ width: '70mm', height: '40mm' }} className="overflow-hidden border border-black p-[2mm]">
-                  <div className="flex items-center justify-between border-b border-black pb-[1mm]">
-                    <span className="text-[2.6mm] font-extrabold">{HOSPITAL_SHORT} · {HOSPITAL_NAME.slice(0, 26)}</span>
+                  <div className="flex items-center justify-between gap-[2mm] border-b border-black pb-[1mm]">
+                    <Logo variant="hospital" className="h-[6mm]" />
                     <span className="text-[2.6mm] font-bold uppercase">
                       {MEALS.find((item) => item.id === refeicao)?.label} {MEALS.find((item) => item.id === refeicao)?.hora}
                     </span>

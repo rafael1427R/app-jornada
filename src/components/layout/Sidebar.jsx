@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { Activity, ChevronRight, ExternalLink, LogOut, ShieldCheck, X } from 'lucide-react'
+import { ChevronRight, ExternalLink, LogOut, ShieldCheck, X } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { useAuth } from '@/context/AuthContext'
 import { APP_NAME, LGPD_NOTICE, SIDEBAR_SUBTITLE, SIDEBAR_TITLE } from '@/lib/brand'
 import { backendLabel } from '@/data/supabaseClient'
@@ -17,17 +18,17 @@ export default function Sidebar({ open, onClose }) {
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/90 text-primary-dark shadow">
-            <Activity className="h-6 w-6" strokeWidth={2.6} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold leading-tight">{SIDEBAR_TITLE}</p>
-            <p className="truncate text-xs text-white/70">{SIDEBAR_SUBTITLE}</p>
+        <div className="border-b border-white/10 px-4 py-4">
+          <div className="flex items-start gap-2">
+            <span className="flex min-w-0 flex-1 items-center rounded-lg bg-white px-2.5 py-2 shadow-sm">
+              <Logo variant="hospital" className="h-7 max-w-full" />
+            </span>
+            <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white lg:hidden" aria-label="Fechar menu">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white lg:hidden" aria-label="Fechar menu">
-            <X className="h-5 w-5" />
-          </button>
+          <p className="mt-3 truncate text-sm font-bold leading-tight">{SIDEBAR_TITLE}</p>
+          <p className="truncate text-xs text-white/70">{SIDEBAR_SUBTITLE}</p>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin">
@@ -83,6 +84,11 @@ export default function Sidebar({ open, onClose }) {
                 Sair
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2">
+            <Logo variant="isac" className="h-9" />
+            <p className="text-[10px] font-semibold leading-tight text-slate-500">Gestão<br />ISAC</p>
           </div>
 
           <div className="flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2">

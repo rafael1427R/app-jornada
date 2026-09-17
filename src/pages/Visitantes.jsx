@@ -9,7 +9,9 @@ import { dateOf, formatCountdown, formatDateTime, formatTime, matches, secondsUn
 import { useNow } from '@/lib/useNow'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
-import { HOSPITAL_NAME, HOSPITAL_SHORT, INSTITUTION_NAME } from '@/lib/brand'
+import PrintHeader from '@/components/PrintHeader'
+import { Logo } from '@/components/Logo'
+import { HOSPITAL_SHORT } from '@/lib/brand'
 
 const EMPTY = { nome: '', documento: '', prontuario: '', setor: 'Clínica Médica', quarto_leito: '', parentesco: 'Outro', observacao: '' }
 
@@ -307,13 +309,13 @@ export default function Visitantes() {
       <PrintArea active={Boolean(cracha)}>
         {cracha ? (
           <div style={{ width: '100mm', height: '65mm' }} className="relative overflow-hidden bg-white p-[4mm] font-sans text-black">
-            <div className="flex items-center gap-[3mm] border-b-2 border-black pb-[2mm]">
-              <div className="flex h-[12mm] w-[12mm] items-center justify-center rounded-[2mm] border-2 border-black text-[6mm] font-extrabold leading-none">{HOSPITAL_SHORT}</div>
-              <div className="leading-tight">
-                <p className="text-[3.2mm] font-extrabold uppercase">{HOSPITAL_NAME}</p>
-                <p className="text-[2.4mm] uppercase">{INSTITUTION_NAME}</p>
-                <p className="text-[2.6mm] font-bold uppercase">Crachá de acompanhante</p>
+            <div className="flex items-center justify-between gap-[3mm] border-b-2 border-black pb-[2mm]">
+              <Logo variant="hospital" className="h-[9mm]" />
+              <div className="flex-1 text-center leading-tight">
+                <p className="text-[3.2mm] font-extrabold uppercase">Crachá de acompanhante</p>
+                <p className="text-[2.2mm] uppercase">Controle de permanência</p>
               </div>
+              <Logo variant="isac" className="h-[11mm]" />
             </div>
 
             <div className="mt-[2mm] flex gap-[3mm]">
@@ -363,14 +365,10 @@ export default function Visitantes() {
       {/* ------------------------------------------------ Relatório A4 paisagem */}
       <PrintArea active={relatorio}>
         <div className="p-4 font-sans text-[11px] text-black">
-          <header className="mb-3 border-b-2 border-black pb-2">
-            <h1 className="text-base font-bold">{HOSPITAL_NAME}</h1>
-            <p className="text-[10px]">{INSTITUTION_NAME}</p>
-            <p className="mt-1 text-sm font-semibold">Relatório de acompanhantes — {formatDateTime(new Date().toISOString())}</p>
-            <p className="text-[10px]">
-              Dentro: {kpis.dentro} · Expirados: {kpis.expirados} · Saíram hoje: {kpis.sairamHoje} · Total: {kpis.total}
-            </p>
-          </header>
+          <PrintHeader
+            titulo="Relatório de acompanhantes"
+            subtitulo={`Dentro: ${kpis.dentro} · Expirados: ${kpis.expirados} · Saíram hoje: ${kpis.sairamHoje} · Total: ${kpis.total}`}
+          />
           <table className="w-full border-collapse text-[10px]">
             <thead>
               <tr className="bg-gray-200">
