@@ -4,6 +4,7 @@ import {
   BedDouble,
   CalendarClock,
   CalendarDays,
+  ClipboardCheck,
   FileText,
   HeartPulse,
   IdCard,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 
 export const MODULE_ICONS = {
+  ClipboardCheck,
   LayoutDashboard,
   LayoutGrid,
   CalendarDays,

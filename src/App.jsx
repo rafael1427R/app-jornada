@@ -19,6 +19,7 @@ import Visitantes from '@/pages/Visitantes'
 import Leitos from '@/pages/Leitos'
 import ProntoSocorro from '@/pages/ProntoSocorro'
 import Nutricao from '@/pages/Nutricao'
+import AvaliacaoNutricional from '@/pages/AvaliacaoNutricional'
 import EtiquetasDieta from '@/pages/EtiquetasDieta'
 import Almoxarifado from '@/pages/Almoxarifado'
 import Auditoria from '@/pages/Auditoria'
@@ -70,6 +71,7 @@ function PrivateArea() {
         <Route path="/leitos" element={<Guard moduleId="leitos"><Leitos /></Guard>} />
         <Route path="/pronto-socorro" element={<Guard moduleId="pronto-socorro"><ProntoSocorro /></Guard>} />
         <Route path="/nutricao" element={<Guard moduleId="nutricao"><Nutricao /></Guard>} />
+        <Route path="/avaliacao-nutricional" element={<Guard moduleId="avaliacao-nutricional"><AvaliacaoNutricional /></Guard>} />
         <Route path="/etiquetas" element={<Guard moduleId="etiquetas"><EtiquetasDieta /></Guard>} />
         <Route path="/almoxarifado" element={<Guard moduleId="almoxarifado"><Almoxarifado /></Guard>} />
         <Route path="/auditoria" element={<Guard moduleId="auditoria"><Auditoria /></Guard>} />

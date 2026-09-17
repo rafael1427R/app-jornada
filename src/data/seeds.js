@@ -231,6 +231,10 @@ export function seedMovimentacoes() {
   return []
 }
 
+export function seedAvaliacoes() {
+  return []
+}
+
 /* --------------------------------------------------------- Auditoria */
 
 export function seedAuditoria() {

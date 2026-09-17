@@ -326,6 +326,15 @@ create table if not exists public.dietas (
 -- Instalações anteriores ganham as colunas de regime sem perder dados:
 alter table public.dietas add column if not exists regime text not null default 'internacao';
 alter table public.dietas add column if not exists inicio_em timestamptz default now();
+alter table public.dietas add column if not exists adequacoes text[] not null default '{}';
+alter table public.dietas add column if not exists enteral_tipo text default '';
+alter table public.dietas add column if not exists enteral_formula text default '';
+alter table public.dietas add column if not exists enteral_volume text default '';
+alter table public.dietas add column if not exists preparacao_diferenciada text default '';
+-- Identificação nominal: usada apenas quando o setor emite etiquetas com nome.
+alter table public.dietas add column if not exists nome_paciente text default '';
+alter table public.dietas add column if not exists nome_mae text default '';
+alter table public.dietas add column if not exists data_nascimento date;
 
 create index if not exists dietas_prontuario_idx on public.dietas (prontuario);
 create index if not exists dietas_regime_idx on public.dietas (regime);
@@ -374,6 +383,71 @@ create index if not exists movimentacoes_estoque_data_idx on public.movimentacoe
 create index if not exists movimentacoes_estoque_produto_idx on public.movimentacoes_estoque (produto_id);
 
 -- ---------------------------------------------------------------------
+-- 16. Avaliação e triagem nutricional (ficha do setor)
+-- ---------------------------------------------------------------------
+create table if not exists public.avaliacoes_nutricionais (
+  id                      uuid primary key default gen_random_uuid(),
+  prontuario              text        not null,
+  nome_paciente           text        default '',
+  data_nascimento         date,
+  sexo                    text        default '',
+  setor                   text        default '',
+  leito                   text        default '',
+  data_admissao           date,
+  data_avaliacao          date        not null default current_date,
+  diagnostico_medico      text        default '',
+  nrs                     jsonb       not null default '{}'::jsonb,
+  nrs_total               integer     not null default 0,
+  nrs_risco               boolean     not null default false,
+  peso_atual              text        default '',
+  altura                  text        default '',
+  altura_joelho           text        default '',
+  peso_usual              text        default '',
+  imc                     text        default '',
+  perda_peso_percent      text        default '',
+  cb                      text        default '',
+  cmb                     text        default '',
+  panturrilha             text        default '',
+  antropometria_obs       text        default '',
+  asg                     text        default '',
+  condicao_clinica        text        default '',
+  apetite                 text        default '',
+  nausea                  boolean     not null default false,
+  diarreia                boolean     not null default false,
+  constipacao             boolean     not null default false,
+  disfagia                text        default '',
+  edema                   boolean     not null default false,
+  edema_local             text        default '',
+  lesoes                  boolean     not null default false,
+  mobilidade              text        default '',
+  via                     text        default 'VO',
+  tipo_dieta              text        default '',
+  aceitacao               text        default '',
+  consumo_habitual        text        default '',
+  alergias                text        default '',
+  jejum                   boolean     not null default false,
+  jejum_motivo            text        default '',
+  exames                  jsonb       not null default '[]'::jsonb,
+  diagnostico_nutricional text        default '',
+  kcal_dia                text        default '',
+  proteina_g_dia          text        default '',
+  proteina_g_kg           text        default '',
+  via_tipo_dieta          text        default '',
+  suplementacao           boolean     not null default false,
+  suplemento_qual         text        default '',
+  observacoes             text        default '',
+  nutricionista           text        default '',
+  crn                     text        default '',
+  evolucoes               jsonb       not null default '[]'::jsonb,
+  criado_em               timestamptz not null default now(),
+  atualizado_em           timestamptz not null default now()
+);
+
+create index if not exists avaliacoes_prontuario_idx on public.avaliacoes_nutricionais (prontuario);
+create index if not exists avaliacoes_data_idx on public.avaliacoes_nutricionais (data_avaliacao desc);
+create index if not exists avaliacoes_risco_idx on public.avaliacoes_nutricionais (nrs_risco);
+
+-- ---------------------------------------------------------------------
 -- Triggers de atualização
 -- ---------------------------------------------------------------------
 do $$
@@ -383,7 +457,7 @@ begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
     'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
-    'dietas', 'produtos_estoque', 'movimentacoes_estoque'
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais'
   ] loop
     execute format('drop trigger if exists set_atualizado_em on public.%I', tabela);
     execute format(
@@ -408,7 +482,7 @@ begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
     'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
-    'dietas', 'produtos_estoque', 'movimentacoes_estoque'
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais'
   ] loop
     execute format('alter table public.%I enable row level security', tabela);
     execute format('drop policy if exists "acesso_interno" on public.%I', tabela);

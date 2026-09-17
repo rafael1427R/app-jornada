@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Clock, Download, Eye, Lock, Pencil, Plus, Printer, Salad, Trash2, UtensilsCrossed } from 'lucide-react'
+import { Clock, Download, Eye, ListChecks, Lock, Pencil, Plus, Printer, Salad, Trash2, UtensilsCrossed } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
@@ -26,14 +26,21 @@ import {
 } from '@/components/ui'
 import {
   BED_SECTORS,
+  DIET_ADEQUACOES,
   DIET_CONSISTENCY,
+  DIET_GROUPS,
   DIET_MODIFICATIONS,
   DIET_REGIMES,
   DIET_STATUS,
   ENTERAL_ROUTES,
+  ENTERAL_TYPES,
+  FEEDING_ROUTES,
   MEALS,
+  NUTRITION_FLOW,
   OBSERVATION_HOURS,
+  grupoDaDieta,
 } from '@/lib/constants'
+import { viaDaDieta, usaSonda } from '@/lib/nutricao'
 import { formatDate, formatDateTime, formatDuration, matches, minutesBetween, todayISO } from '@/lib/format'
 import { useNow } from '@/lib/useNow'
 import { baixarCsv, carimboArquivo } from '@/lib/csv'
@@ -46,15 +53,24 @@ const EMPTY = {
   leito: '',
   setor: '',
   regime: 'internacao',
-  consistencia: 'Geral',
+  consistencia: 'Livre',
   modificacao: 'Sem modificação',
-  via_enteral: 'Não se aplica',
+  adequacoes: [],
+  via_enteral: 'VO',
+  enteral_tipo: '',
+  enteral_formula: '',
+  enteral_volume: '',
   dieta_prescrita: '',
+  preparacao_diferenciada: '',
   acompanhante_refeicao: false,
   observacoes: '',
   status: 'ativa',
   data_prescricao: todayISO(),
   inicio_em: '',
+  // Campos usados apenas quando a etiqueta é emitida com identificação nominal.
+  nome_paciente: '',
+  nome_mae: '',
+  data_nascimento: '',
 }
 
 /** Cor do tempo de permanência conforme as faixas de alerta. */
@@ -97,7 +113,7 @@ export default function Nutricao() {
     () => ({
       ativas: ativas.length,
       observacao: ativas.filter((dieta) => dieta.regime === 'observacao').length,
-      enteral: ativas.filter((dieta) => dieta.via_enteral && dieta.via_enteral !== 'Não se aplica').length,
+      enteral: ativas.filter((dieta) => usaSonda(dieta)).length,
       acompanhantes: ativas.filter((dieta) => dieta.acompanhante_refeicao).length,
       excedidos: ativas.filter((dieta) => dieta.regime === 'observacao' && tempoDe(dieta) / 60 >= OBSERVATION_HOURS.limite).length,
     }),
@@ -132,7 +148,7 @@ export default function Nutricao() {
       const registro = setores.get(chave)
       registro.total += 1
       if (dieta.acompanhante_refeicao) registro.acompanhantes += 1
-      if (dieta.via_enteral && dieta.via_enteral !== 'Não se aplica') registro.enteral += 1
+      if (usaSonda(dieta)) registro.enteral += 1
       if (dieta.regime === 'observacao') registro.observacao += 1
       registro.consistencias[dieta.consistencia] = (registro.consistencias[dieta.consistencia] || 0) + 1
     })
@@ -252,7 +268,9 @@ export default function Nutricao() {
         { label: 'Tempo (h)', valor: (d) => (tempoDe(d) / 60).toFixed(1) },
         { label: 'Consistência', valor: (d) => d.consistencia },
         { label: 'Modificação', valor: (d) => d.modificacao },
-        { label: 'Via', valor: (d) => (d.via_enteral === 'Não se aplica' ? 'Oral' : d.via_enteral) },
+        { label: 'Via', valor: (d) => viaDaDieta(d) },
+        { label: 'Listagem UAN', valor: (d) => grupoDaDieta(d).label },
+        { label: 'Adequações', valor: (d) => (d.adequacoes || []).join(' / ') },
         { label: 'Acompanhante', valor: (d) => (d.acompanhante_refeicao ? 'Sim' : 'Não') },
         { label: 'Status', valor: (d) => DIET_STATUS[d.status].label },
         { label: 'Início', valor: (d) => formatDateTime(d.inicio_em || d.criado_em) },
@@ -289,6 +307,9 @@ export default function Nutricao() {
         </Pill>
         <Pill active={aba === 'mapa'} onClick={() => setAba('mapa')}>
           Mapa de refeições ({totalRefeicoes})
+        </Pill>
+        <Pill active={aba === 'fluxo'} onClick={() => setAba('fluxo')}>
+          Fluxo do plantão
         </Pill>
       </div>
 
@@ -349,6 +370,7 @@ export default function Nutricao() {
                   <Th>Leito</Th>
                   <Th>Prontuário</Th>
                   <Th>Setor</Th>
+                  <Th>Listagem UAN</Th>
                   <Th>Regime</Th>
                   <Th>Tempo</Th>
                   <Th>Consistência</Th>
@@ -368,6 +390,7 @@ export default function Nutricao() {
                       <Td className="font-semibold">{dieta.leito}</Td>
                       <Td className="font-mono text-xs font-semibold text-primary">{dieta.prontuario}</Td>
                       <Td className="text-slate-500">{dieta.setor}</Td>
+                      <Td className="text-xs text-slate-500">{grupoDaDieta(dieta).label}</Td>
                       <Td>
                         <StatusBadge map={DIET_REGIMES} value={regime} />
                       </Td>
@@ -381,7 +404,8 @@ export default function Nutricao() {
                       <Td>{dieta.consistencia}</Td>
                       <Td className="text-slate-500">{dieta.modificacao}</Td>
                       <Td className="text-slate-500">
-                        {dieta.via_enteral === 'Não se aplica' ? 'Oral' : dieta.via_enteral}
+                        {viaDaDieta(dieta)}
+                        {usaSonda(dieta) ? <Badge className="ml-2 border-violet-200 bg-violet-100 text-violet-700">sonda</Badge> : null}
                         {dieta.acompanhante_refeicao ? <Badge className="ml-2 border-accent/30 bg-accent-light text-accent-dark">+ acomp.</Badge> : null}
                       </Td>
                       <Td>
@@ -409,6 +433,87 @@ export default function Nutricao() {
             </TableWrapper>
           )}
         </Card>
+      ) : aba === 'fluxo' ? (
+        <div className="space-y-5">
+          <Card>
+            <CardHeader title="Fluxo do plantão (07h às 19h)" description="Prazos de atualização e entrega das etiquetas à UAN" icon={ListChecks} />
+            <ol className="relative space-y-0 p-5">
+              {NUTRITION_FLOW.map((etapa, indice) => (
+                <li key={etapa.hora} className="relative flex gap-4 pb-6 last:pb-0">
+                  {indice < NUTRITION_FLOW.length - 1 ? <span className="absolute left-[27px] top-9 h-full w-px bg-border" aria-hidden="true" /> : null}
+                  <span className={`z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${etapa.prazo ? 'bg-amber-100 text-amber-700' : 'bg-primary-light text-primary'}`}>
+                    {etapa.hora}
+                  </span>
+                  <div className="pt-1">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {etapa.titulo}
+                      {etapa.prazo ? <Badge className="ml-2 border-amber-200 bg-amber-100 text-amber-700">prazo</Badge> : null}
+                    </p>
+                    <p className="text-sm text-slate-500">{etapa.detalhe}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader title="Horários das refeições" description="Fluxo geral e fluxo de UTI / sondas" icon={UtensilsCrossed} />
+              <TableWrapper>
+                <thead>
+                  <tr>
+                    <Th>Refeição</Th>
+                    <Th>Geral</Th>
+                    <Th>UTI / sonda</Th>
+                    <Th>Acompanhante</Th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {MEALS.map((refeicao) => (
+                    <tr key={refeicao.id}>
+                      <Td className="font-semibold">{refeicao.label}</Td>
+                      <Td>{refeicao.hora}</Td>
+                      <Td className="text-slate-500">{refeicao.horaUti}</Td>
+                      <Td>
+                        {refeicao.acompanhante ? (
+                          <Badge className="border-emerald-200 bg-emerald-100 text-emerald-700">Recebe</Badge>
+                        ) : (
+                          <Badge className="border-slate-200 bg-slate-100 text-slate-500">Não recebe</Badge>
+                        )}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </TableWrapper>
+              <p className="border-t border-border px-5 py-3 text-xs text-slate-500">
+                Pacientes recebem 6 refeições; acompanhantes recebem 4 (desjejum, almoço, lanche da tarde e jantar), com
+                cardápio padrão — sem a dieta terapêutica do paciente.
+              </p>
+            </Card>
+
+            <Card>
+              <CardHeader title="Listagens entregues à UAN" description="Como as etiquetas são organizadas" icon={ListChecks} />
+              <TableWrapper>
+                <thead>
+                  <tr>
+                    <Th>Listagem</Th>
+                    <Th>Dietas ativas</Th>
+                    <Th>Horário</Th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {DIET_GROUPS.map((grupo) => (
+                    <tr key={grupo.id}>
+                      <Td className="font-semibold">{grupo.label}</Td>
+                      <Td>{ativas.filter((dieta) => grupoDaDieta(dieta).id === grupo.id).length}</Td>
+                      <Td className="text-slate-500">{grupo.horarioUti ? 'UTI / sonda' : 'Geral'}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </TableWrapper>
+            </Card>
+          </div>
+        </div>
       ) : (
         <Card>
           <CardHeader
@@ -560,15 +665,61 @@ export default function Nutricao() {
               ))}
             </Select>
           </Field>
-          <Field label="Via de administração" className="sm:col-span-2">
+          <Field label="Via de alimentação" hint={ENTERAL_ROUTES.includes(form.via_enteral) ? 'Paciente em terapia enteral: segue os horários da UTI e entra na listagem de sondas.' : ''}>
             <Select value={form.via_enteral} onChange={(event) => setForm({ ...form, via_enteral: event.target.value })}>
-              {ENTERAL_ROUTES.map((item) => (
+              {FEEDING_ROUTES.map((item) => (
                 <option key={item} value={item}>
-                  {item === 'Não se aplica' ? 'Oral' : item}
+                  {item === 'VO' ? 'VO — via oral' : item}
                 </option>
               ))}
             </Select>
           </Field>
+          <Field label="Listagem da UAN">
+            <Input value={grupoDaDieta(form).label} readOnly className="bg-slate-50" />
+          </Field>
+
+          {ENTERAL_ROUTES.includes(form.via_enteral) ? (
+            <>
+              <Field label="Tipo de dieta enteral">
+                <Select value={form.enteral_tipo} onChange={(event) => setForm({ ...form, enteral_tipo: event.target.value })}>
+                  <option value="">Selecione...</option>
+                  {ENTERAL_TYPES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Fórmula">
+                <Input value={form.enteral_formula} onChange={(event) => setForm({ ...form, enteral_formula: event.target.value })} placeholder="Ex.: padrão 1.0 kcal/mL" />
+              </Field>
+              <Field label="Volume" className="sm:col-span-2">
+                <Input value={form.enteral_volume} onChange={(event) => setForm({ ...form, enteral_volume: event.target.value })} placeholder="Ex.: 6 x 200 mL" />
+              </Field>
+            </>
+          ) : null}
+
+          <div className="sm:col-span-2">
+            <p className="label">Adequações complementares</p>
+            <div className="flex flex-wrap gap-2">
+              {DIET_ADEQUACOES.map((item) => (
+                <Pill
+                  key={item}
+                  active={(form.adequacoes || []).includes(item)}
+                  onClick={() =>
+                    setForm((atual) => ({
+                      ...atual,
+                      adequacoes: (atual.adequacoes || []).includes(item)
+                        ? atual.adequacoes.filter((valor) => valor !== item)
+                        : [...(atual.adequacoes || []), item],
+                    }))
+                  }
+                >
+                  {item}
+                </Pill>
+              ))}
+            </div>
+          </div>
           <Field label="Dieta prescrita (descrição)" className="sm:col-span-2">
             <Input value={form.dieta_prescrita} onChange={(event) => setForm({ ...form, dieta_prescrita: event.target.value })} placeholder="Ex.: Branda hipossódica fracionada em 6 refeições" />
           </Field>
@@ -583,6 +734,29 @@ export default function Nutricao() {
               Acompanhante recebe refeição
             </label>
           </div>
+          <Field label="Preparação diferenciada" className="sm:col-span-2" hint="Comunicar à UAN até 10h para o almoço e antes das 18h para o jantar.">
+            <Input value={form.preparacao_diferenciada} onChange={(event) => setForm({ ...form, preparacao_diferenciada: event.target.value })} placeholder="Ex.: substituir peixe por frango" />
+          </Field>
+
+          <div className="sm:col-span-2 rounded-xl border border-border bg-slate-50 p-4">
+            <p className="label mb-2">Identificação nominal (opcional)</p>
+            <p className="mb-3 text-xs text-slate-500">
+              Preencha apenas se as etiquetas do seu setor forem emitidas com o nome do paciente. Em Etiquetas de Dieta é
+              possível alternar entre identificar por prontuário (padrão) ou pelo nome completo.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="Nome completo">
+                <Input value={form.nome_paciente} onChange={(event) => setForm({ ...form, nome_paciente: event.target.value })} />
+              </Field>
+              <Field label="Nome da mãe">
+                <Input value={form.nome_mae} onChange={(event) => setForm({ ...form, nome_mae: event.target.value })} />
+              </Field>
+              <Field label="Data de nascimento">
+                <Input type="date" value={form.data_nascimento} onChange={(event) => setForm({ ...form, data_nascimento: event.target.value })} />
+              </Field>
+            </div>
+          </div>
+
           <Field label="Observações nutricionais" className="sm:col-span-2">
             <Textarea value={form.observacoes} onChange={(event) => setForm({ ...form, observacoes: event.target.value })} placeholder="Alergias, restrições, preferências (sem dados pessoais)" />
           </Field>

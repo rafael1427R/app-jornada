@@ -60,11 +60,12 @@ A sessão fica em `localStorage` (`sys-session-v1`) e os usuários em
 | 10 | Visitantes | `/visitantes` | Permanência de 1 hora, contador MM:SS, crachá térmico e relatório |
 | 11 | Leitos | `/leitos` | 150 leitos em 9 setores: CRUD de leitos, ocupação por prontuário, alta com motivo (alta/transferência/óbito), barra de ocupação por setor e vínculo com o acompanhante |
 | 12 | Pronto Socorro Digital | `/pronto-socorro` | 30 quartos digitais: admissão, evolução clínica e alta |
-| 13 | Nutrição / Dietas | `/nutricao` | Prescrição por prontuário/leito (consistência, modificação terapêutica, via enteral), **regime de permanência com cronômetro** (internação ou observação) e mapa de refeições por setor |
-| 14 | Etiquetas de Dieta | `/etiquetas` | Impressão 70mm × 40mm por refeição, **colorida ou preto e branco**, com etiqueta extra para o acompanhante e marcação de sonda/observação |
-| 15 | Almoxarifado | `/almoxarifado` | Estoque da UAN: saldo, entrada/saída com validação de saldo, alerta de mínimo e histórico |
-| 16 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
-| 17 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
+| 13 | Nutrição / Dietas | `/nutricao` | Prescrição por prontuário/leito: consistência, modificação terapêutica, adequações complementares, via de alimentação, terapia enteral, regime com cronômetro, mapa de refeições e **fluxo do plantão com os prazos da UAN** |
+| 14 | Avaliação Nutricional | `/avaliacao-nutricional` | Ficha do setor: triagem NRS-2002, antropometria com IMC e perda de peso calculados, avaliação clínica e dietética, exames, diagnóstico, conduta e evoluções — impressa em A4 |
+| 15 | Etiquetas de Dieta | `/etiquetas` | Impressão 80mm × 40mm por refeição e por listagem da UAN, colorida ou preto e branco, identificação por prontuário ou nominal |
+| 16 | Almoxarifado | `/almoxarifado` | Estoque da UAN: saldo, entrada/saída com validação de saldo, alerta de mínimo e histórico |
+| 17 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
+| 18 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
 | — | Painel Acompanhantes | `/status` | **Rota pública, sem login**, status por prontuário |
 
 O menu lateral exibe **apenas os módulos liberados** para o usuário conectado.
@@ -323,6 +324,37 @@ quando o regime muda. As faixas de alerta estão em `OBSERVATION_HOURS`
 | 6h a 12h | Âmbar |
 | 12h a 24h | Vermelho |
 | Acima de 24h | Vermelho, linha destacada e KPI "Tempo excedido" |
+
+## Rotina da Nutrição
+
+O módulo segue o funcionamento descrito pela coordenação do setor:
+
+| Refeição | Geral | UTI e sondas | Acompanhante |
+| --- | --- | --- | --- |
+| Desjejum | 05:45 | 06:45 | Recebe |
+| Lanche da manhã | 09:00 | 10:00 | Não recebe |
+| Almoço | 12:00 | 13:00 | Recebe |
+| Lanche da tarde | 15:00 | 16:00 | Recebe |
+| Jantar | 18:00 | 19:00 | Recebe |
+| Ceia | 21:30 | 22:00 | Não recebe |
+
+Pacientes recebem 6 refeições, acompanhantes 4 — e com **cardápio padrão**: a
+etiqueta do acompanhante nunca carrega a dieta terapêutica do paciente.
+
+As etiquetas são organizadas nas listagens entregues à UAN (`DIET_GROUPS`):
+UTI 1 + UTI 2 + sondas, Clínica Médica, Clínica Ortopédica/Cirúrgica,
+Pediatria + UCINCo, Pronto-Socorro e Maternidade. Pacientes em uso de sonda
+entram na listagem de UTI independentemente do setor, porque seguem aqueles
+horários.
+
+### Identificação nas etiquetas
+
+Em Etiquetas de Dieta há um seletor entre **prontuário** (padrão) e **nome
+completo**. No modo nominal a etiqueta traz nome, data de nascimento e nome da
+mãe, campos preenchidos na prescrição. A escolha é do serviço: a LGPD permite o
+tratamento de dados de saúde para a assistência (art. 11, II, "f"), e a
+identificação nominal na bandeja é prática consolidada; o modo prontuário
+existe para quem prefere não circular nome em impresso.
 
 ## Exportação para planilha
 

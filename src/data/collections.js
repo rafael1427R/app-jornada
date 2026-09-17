@@ -14,6 +14,7 @@ import {
   seedDietas,
   seedProdutos,
   seedMovimentacoes,
+  seedAvaliacoes,
 } from './seeds'
 
 /**
@@ -36,6 +37,12 @@ export const COLLECTIONS = {
   dietas: { key: 'dietas-v1', table: 'dietas', seed: seedDietas, dateFields: ['data_prescricao', 'inicio_em'] },
   produtos: { key: 'estoque-v1', table: 'produtos_estoque', seed: seedProdutos, dateFields: ['validade'] },
   movimentacoes: { key: 'estoque-mov-v1', table: 'movimentacoes_estoque', seed: seedMovimentacoes, dateFields: ['data'] },
+  avaliacoes: {
+    key: 'avaliacoes-v1',
+    table: 'avaliacoes_nutricionais',
+    seed: seedAvaliacoes,
+    dateFields: ['data_nascimento', 'data_admissao', 'data_avaliacao'],
+  },
 }
 
 export const SESSION_KEY = 'sys-session-v1'

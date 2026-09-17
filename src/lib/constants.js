@@ -14,6 +14,7 @@ export const MODULES = [
   { id: 'leitos', label: 'Leitos', path: '/leitos', icon: 'BedDouble' },
   { id: 'pronto-socorro', label: 'Pronto Socorro Digital', path: '/pronto-socorro', icon: 'Ambulance' },
   { id: 'nutricao', label: 'Nutrição / Dietas', path: '/nutricao', icon: 'Salad' },
+  { id: 'avaliacao-nutricional', label: 'Avaliação Nutricional', path: '/avaliacao-nutricional', icon: 'ClipboardCheck' },
   { id: 'etiquetas', label: 'Etiquetas de Dieta', path: '/etiquetas', icon: 'Tags' },
   { id: 'almoxarifado', label: 'Almoxarifado', path: '/almoxarifado', icon: 'Package' },
   { id: 'auditoria', label: 'Log de Auditoria', path: '/auditoria', icon: 'ScrollText' },
@@ -147,39 +148,78 @@ export const BED_SECTORS = [
 
 /* --------------------------------------------------------- Nutrição */
 
-export const DIET_CONSISTENCY = ['Geral', 'Branda', 'Pastosa', 'Líquida completa', 'Líquida restrita', 'Zero (jejum)']
+/** Consistências conforme a rotina do setor. */
+export const DIET_CONSISTENCY = ['Livre', 'Branda', 'Pastosa', 'Líquida pastosa', 'Líquida', 'Líquida de prova', 'Zero']
 
-/** Cores das etiquetas por consistência (usadas na impressão colorida). */
+/** Modificações terapêuticas. */
+export const DIET_MODIFICATIONS = ['Sem modificação', 'Hipossódica', 'Para diabetes', 'Para renal', 'Hipolipídica']
+
+/** Adequações complementares (podem ocorrer várias ao mesmo tempo). */
+export const DIET_ADEQUACOES = [
+  'Zero lactose',
+  'Sem irritantes gástricos',
+  'Laxante',
+  'Constipante',
+  'Exclusão de alimentos específicos',
+  'Preferências individualizadas',
+]
+
+/** Cores das etiquetas por consistência (impressão colorida). */
 export const DIET_COLORS = {
-  'Geral': '#10b981',
-  'Branda': '#0ea5e9',
-  'Pastosa': '#8b5cf6',
-  'Líquida completa': '#06b6d4',
-  'Líquida restrita': '#f59e0b',
-  'Zero (jejum)': '#ef4444',
+  Livre: '#10b981',
+  Branda: '#0ea5e9',
+  Pastosa: '#8b5cf6',
+  'Líquida pastosa': '#6366f1',
+  Líquida: '#06b6d4',
+  'Líquida de prova': '#0891b2',
+  Zero: '#ef4444',
 }
 
-export const DIET_MODIFICATIONS = [
-  'Sem modificação',
-  'Hipossódica',
-  'Para diabéticos',
-  'Hipogordurosa',
-  'Hipoproteica',
-  'Hiperproteica',
-  'Sem lactose',
-  'Sem glúten',
-]
+/** Vias de alimentação da ficha de avaliação. */
+export const FEEDING_ROUTES = ['VO', 'SNG', 'SOG', 'SNE', 'GTT', 'NPT', 'Mista', 'Zero']
 
-export const ENTERAL_ROUTES = ['Não se aplica', 'Sonda nasogástrica', 'Sonda nasoenteral', 'Gastrostomia', 'Jejunostomia']
+/** Vias que caracterizam terapia nutricional enteral. */
+export const ENTERAL_ROUTES = ['SNG', 'SOG', 'SNE', 'GTT']
 
+export const ENTERAL_TYPES = ['Industrializada', 'Artesanal']
+
+/**
+ * Horários das refeições. Pacientes do fluxo geral recebem seis refeições;
+ * UTI e pacientes em uso de sonda seguem horários próprios; acompanhantes
+ * recebem quatro refeições e cardápio padrão, sem dieta terapêutica.
+ */
 export const MEALS = [
-  { id: 'desjejum', label: 'Desjejum', hora: '07:00' },
-  { id: 'colacao', label: 'Colação', hora: '09:30' },
-  { id: 'almoco', label: 'Almoço', hora: '11:30' },
-  { id: 'lanche', label: 'Lanche', hora: '15:00' },
-  { id: 'jantar', label: 'Jantar', hora: '18:00' },
-  { id: 'ceia', label: 'Ceia', hora: '21:00' },
+  { id: 'desjejum', label: 'Desjejum', hora: '05:45', horaUti: '06:45', acompanhante: true },
+  { id: 'lanche_manha', label: 'Lanche da manhã', hora: '09:00', horaUti: '10:00', acompanhante: false },
+  { id: 'almoco', label: 'Almoço', hora: '12:00', horaUti: '13:00', acompanhante: true },
+  { id: 'lanche_tarde', label: 'Lanche da tarde', hora: '15:00', horaUti: '16:00', acompanhante: true },
+  { id: 'jantar', label: 'Jantar', hora: '18:00', horaUti: '19:00', acompanhante: true },
+  { id: 'ceia', label: 'Ceia', hora: '21:30', horaUti: '22:00', acompanhante: false },
 ]
+
+export const COMPANION_MEALS = MEALS.filter((refeicao) => refeicao.acompanhante).map((refeicao) => refeicao.id)
+
+/**
+ * Listagens de organização das etiquetas entregues à UAN.
+ * `sonda: true` capta pacientes em uso de sonda de qualquer setor.
+ */
+export const DIET_GROUPS = [
+  { id: 'uti_sonda', label: 'UTI 1 + UTI 2 + sondas', curto: 'UTI / SONDA', setores: ['UTI Adulto', 'UTI2', 'UCInco'], sonda: true, horarioUti: true },
+  { id: 'clinica_medica', label: 'Clínica Médica', curto: 'CL. MÉDICA', setores: ['Clínica Médica'], sonda: false, horarioUti: false },
+  { id: 'clinica_cirurgica', label: 'Clínica Ortopédica / Cirúrgica', curto: 'CL. CIRÚRGICA', setores: ['Clínica Cirúrgica'], sonda: false, horarioUti: false },
+  { id: 'pediatria', label: 'Pediatria + UCINCo', curto: 'PEDIATRIA', setores: ['Pediatria'], sonda: false, horarioUti: false },
+  { id: 'pronto_socorro', label: 'Pronto-Socorro', curto: 'PS', setores: ['Emergência', 'Pronto Socorro'], sonda: false, horarioUti: false },
+  { id: 'maternidade', label: 'Maternidade', curto: 'MATERNIDADE', setores: ['Obstetrícia'], sonda: false, horarioUti: false },
+  { id: 'outros', label: 'Demais setores', curto: 'OUTROS', setores: [], sonda: false, horarioUti: false },
+]
+
+/** Descobre a listagem de uma dieta pelo setor e pela via de alimentação. */
+export function grupoDaDieta(dieta) {
+  const usaSonda = ENTERAL_ROUTES.includes(dieta?.via_enteral)
+  if (usaSonda) return DIET_GROUPS[0]
+  const porSetor = DIET_GROUPS.find((grupo) => grupo.setores.includes(dieta?.setor))
+  return porSetor || DIET_GROUPS[DIET_GROUPS.length - 1]
+}
 
 /** Regime de permanência do paciente que recebe a dieta. */
 export const DIET_REGIMES = {
@@ -195,6 +235,51 @@ export const DIET_STATUS = {
   suspensa: { label: 'Suspensa', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
   encerrada: { label: 'Encerrada', badge: 'bg-slate-100 text-slate-600 border-slate-200' },
 }
+
+/** Prazos do plantão da nutrição (07h às 19h). */
+export const NUTRITION_FLOW = [
+  { hora: '07:00', titulo: 'Início do plantão', detalhe: 'Conferência de pacientes, prescrições, alterações e cardápio do dia' },
+  { hora: '09:00', titulo: 'Etiquetas do lanche da manhã', detalhe: 'Atualizar e entregar à UAN', prazo: true },
+  { hora: '10:00', titulo: 'Preparações diferenciadas do almoço', detalhe: 'Comunicar à UAN com antecedência para o preparo', prazo: true },
+  { hora: '12:00', titulo: 'Etiquetas do almoço', detalhe: 'Entregar antes da distribuição', prazo: true },
+  { hora: '15:00', titulo: 'Etiquetas do lanche da tarde', detalhe: 'Entregar antes da distribuição', prazo: true },
+  { hora: '18:00', titulo: 'Etiquetas do jantar', detalhe: 'Com comunicação prévia das preparações diferenciadas', prazo: true },
+  { hora: '19:00', titulo: 'Encerramento do plantão', detalhe: 'Organizar as etiquetas da ceia (21h30) e do desjejum do dia seguinte (05h45)', prazo: true },
+]
+
+/* ------------------------------------------- Avaliação nutricional */
+
+/** Triagem NRS-2002 (pré-triagem). Qualquer "sim" indica risco nutricional. */
+export const NRS_ITEMS = [
+  { id: 'imc', label: 'IMC menor que 20,5' },
+  { id: 'perda_peso', label: 'Perda de peso não intencional nos últimos 3 meses' },
+  { id: 'ingestao', label: 'Redução da ingestão alimentar recente' },
+  { id: 'doenca_grave', label: 'Doença grave, mau estado geral ou UTI' },
+]
+
+export const ASG_CLASSES = {
+  A: { label: 'A — bem nutrido', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  B: { label: 'B — risco ou desnutrição moderada', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+  C: { label: 'C — desnutrição grave', badge: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+export const APPETITE = ['Preservado', 'Reduzido', 'Ausente', 'Sem informação']
+export const ACCEPTANCE = ['Boa', 'Regular', 'Ruim', 'Sem informação']
+export const MOBILITY = ['Deambula', 'Restrito ao leito', 'Cadeira']
+export const DYSPHAGIA = ['Não', 'Líquidos', 'Sólidos', 'Ambos', 'Sem informação']
+
+/** Exames com as faixas de referência da ficha do setor. */
+export const LAB_TESTS = [
+  { id: 'albumina', label: 'Albumina', referencia: '3,5 a 5,5 g/dL' },
+  { id: 'hemoglobina', label: 'Hemoglobina', referencia: '13,5 a 17,5 g/dL' },
+  { id: 'hematocrito', label: 'Hematócrito', referencia: '41 a 53%' },
+  { id: 'glicemia', label: 'Glicemia', referencia: '—' },
+  { id: 'ureia', label: 'Ureia', referencia: '15,0 a 45,0 mg/dL' },
+  { id: 'creatinina', label: 'Creatinina', referencia: '0,4 a 1,4 mg/dL' },
+  { id: 'sodio', label: 'Sódio', referencia: '135 a 145 mEq/L' },
+  { id: 'potassio', label: 'Potássio', referencia: '3,6 a 5,1 mEq/L' },
+  { id: 'calcio', label: 'Cálcio iônico', referencia: '1,11 a 1,40 mmol/L' },
+]
 
 /* ----------------------------------------------------- Almoxarifado */
 
