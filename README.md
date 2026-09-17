@@ -221,6 +221,34 @@ Para apagar o projeto inteiro: Settings → General → Delete project.
 
 ---
 
+## Publicar (Netlify ou Vercel)
+
+O projeto já vem configurado: `netlify.toml`, `public/_redirects` e
+`vercel.json`. O ponto crítico é o **redirecionamento de página única** — sem
+ele, abrir `/leitos` ou `/status` direto (ou apertar F5) devolve 404, porque o
+servidor procura um arquivo que não existe.
+
+### Netlify pelo GitHub (recomendado)
+
+1. <https://app.netlify.com> → **Add new site** → **Import an existing project**
+2. Conecte o GitHub e escolha o repositório e a branch
+3. Build command e publish directory já vêm do `netlify.toml` (`npm run build`
+   e `dist`) — não mexa
+4. **Site configuration → Environment variables**, adicione:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+5. **Deploy site**. Cada push na branch republica sozinho.
+
+Importante: variáveis `VITE_*` são embutidas no JavaScript durante o build. Ao
+mudar uma, é preciso **refazer o deploy** (Deploys → Trigger deploy) — não basta
+salvar.
+
+### Netlify sem Git (arrastar a pasta)
+
+`npm run build` e arraste a pasta `dist` em <https://app.netlify.com/drop>.
+Nesse caminho as variáveis de ambiente precisam estar no `.env` **antes** do
+build, porque o Netlify só recebe os arquivos prontos.
+
 ## Estrutura de pastas
 
 ```
