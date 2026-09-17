@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { BedDouble, Building2, LogIn, LogOut, Sparkles, Wrench } from 'lucide-react'
 import { useCollection } from '@/data/store'
 import { useToast } from '@/context/ToastContext'
-import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, StatusBadge, Textarea } from '@/components/ui'
+import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, Textarea } from '@/components/ui'
 import { BED_SECTORS, BED_STATUS } from '@/lib/constants'
 import { formatDate, formatDateTime, matches, percent } from '@/lib/format'
 

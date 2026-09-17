@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { Activity, ChevronRight, ExternalLink, LogOut, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { APP_NAME, LGPD_NOTICE, SIDEBAR_SUBTITLE, SIDEBAR_TITLE } from '@/lib/brand'
+import { backendLabel } from '@/data/supabaseClient'
 import { moduleIcon } from './icons'
 
 export default function Sidebar({ open, onClose }) {
@@ -89,7 +90,9 @@ export default function Sidebar({ open, onClose }) {
             <p className="text-[11px] font-medium leading-snug text-emerald-100">{LGPD_NOTICE}</p>
           </div>
 
-          <p className="px-1 text-[10px] text-white/40">{APP_NAME} · v1.0</p>
+          <p className="px-1 text-[10px] text-white/40">
+            {APP_NAME} · v1.0 · dados: {backendLabel}
+          </p>
         </div>
       </aside>
     </>
