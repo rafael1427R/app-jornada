@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Clock, IdCard, LogOut, Pencil, Plus, Printer, RotateCcw, Trash2, Users } from 'lucide-react'
 import { useCollection } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, Select, TableWrapper, Td, Textarea, Th } from '@/components/ui'
 import { SECTORS, VISIT_KINSHIP, VISIT_LIMIT_MINUTES } from '@/lib/constants'
@@ -17,6 +18,10 @@ const limiteDe = (entrada) => new Date(new Date(entrada).getTime() + VISIT_LIMIT
 export default function Visitantes() {
   const { items: visitantes, loading, create, update, remove } = useCollection('visitantes')
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('visitantes', 'criar')
+  const podeEditar = canDo('visitantes', 'editar')
+  const podeExcluir = canDo('visitantes', 'excluir')
   useNow(1000)
 
   const [busca, setBusca] = useState('')
@@ -145,10 +150,11 @@ export default function Visitantes() {
             <>
               <button type="button" className="btn-ghost" onClick={imprimirRelatorio}>
                 <Printer className="h-4 w-4" /> Relatório A4
-              </button>
-              <button type="button" className="btn-primary" onClick={abrirNovo}>
+              </button>              {podeCriar ? (
+                <button type="button" className="btn-primary" onClick={abrirNovo}>
                 <Plus className="h-4 w-4" /> Nova entrada
               </button>
+              ) : null}
             </>
           }
         />
@@ -216,21 +222,24 @@ export default function Visitantes() {
                         <button type="button" onClick={() => imprimirCracha(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Imprimir crachá">
                           <Printer className="h-4 w-4" />
                         </button>
-                        {visitante.saida ? (
+                        {podeEditar && visitante.saida ? (
                           <button type="button" onClick={() => reentrada(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-600" aria-label="Reentrada">
                             <RotateCcw className="h-4 w-4" />
                           </button>
-                        ) : (
+                        ) : null}
+                        {podeEditar && !visitante.saida ? (
                           <button type="button" onClick={() => registrarSaida(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600" aria-label="Registrar saída">
                             <LogOut className="h-4 w-4" />
                           </button>
-                        )}
-                        <button type="button" onClick={() => abrirEdicao(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                        ) : null}                        {podeEditar ? (
+                          <button type="button" onClick={() => abrirEdicao(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={() => excluir(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                        ) : null}                        {podeExcluir ? (
+                          <button type="button" onClick={() => excluir(visitante)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
                           <Trash2 className="h-4 w-4" />
                         </button>
+                        ) : null}
                       </div>
                     </Td>
                   </tr>

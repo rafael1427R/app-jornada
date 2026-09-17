@@ -82,6 +82,18 @@ select 'PS-' || lpad(numero::text, 2, '0'), 'disponivel'
 from generate_series(1, 30) as numero
 on conflict (nome) do nothing;
 
+-- ------------------------------------------- Almoxarifado (Nutrição/UAN)
+insert into public.produtos_estoque (nome, categoria, unidade, estoque_atual, estoque_minimo, custo_unitario, fornecedor)
+values
+  ('Arroz tipo 1', 'Secos', 'kg', 120, 40, 5.40, 'Distribuidora Central'),
+  ('Feijão carioca', 'Secos', 'kg', 60, 30, 7.90, 'Distribuidora Central'),
+  ('Peito de frango congelado', 'Carnes e frios', 'kg', 45, 50, 18.50, 'Frigorífico Piauí'),
+  ('Dieta enteral padrão 1.0', 'Dietas e enteral', 'fr', 28, 20, 32.00, 'Nutrimed'),
+  ('Espessante alimentar', 'Dietas e enteral', 'un', 8, 12, 46.90, 'Nutrimed'),
+  ('Marmitex descartável', 'Descartáveis', 'un', 900, 300, 1.20, 'EmbalaMais'),
+  ('Detergente neutro 5L', 'Limpeza', 'un', 14, 6, 21.00, 'CleanPro')
+on conflict do nothing;
+
 -- ------------------------------------------------------------ Conferência
 -- select 'leitos' as tabela, count(*) from public.leitos
 -- union all select 'ps_leitos', count(*) from public.ps_leitos

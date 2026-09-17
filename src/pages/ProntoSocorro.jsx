@@ -12,8 +12,11 @@ const EMPTY_ADMISSAO = { prontuario: '', classificacao: 'verde', queixa: '' }
 export default function ProntoSocorro() {
   const { items: leitos, loading, update } = useCollection('psLeitos')
   const { items: altas, create: registrarAlta } = useCollection('psAltas')
-  const { user } = useAuth()
+  const { user, canDo } = useAuth()
   const toast = useToast()
+  const podeCriar = canDo('pronto-socorro', 'criar')
+  const podeEditar = canDo('pronto-socorro', 'editar')
+  const podeExcluir = canDo('pronto-socorro', 'excluir')
 
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState('todos')
@@ -193,7 +196,7 @@ export default function ProntoSocorro() {
                     )}
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {leito.status === 'disponivel' ? (
+                      {podeCriar && leito.status === 'disponivel' ? (
                         <button type="button" className="btn-primary flex-1" onClick={() => abrirAdmissao(leito)}>
                           <LogIn className="h-4 w-4" /> Admitir
                         </button>
@@ -203,7 +206,7 @@ export default function ProntoSocorro() {
                           <Stethoscope className="h-4 w-4" /> Atender
                         </button>
                       ) : null}
-                      {leito.status === 'higienizacao' ? (
+                      {podeEditar && leito.status === 'higienizacao' ? (
                         <button type="button" className="btn-ghost flex-1" onClick={() => liberar(leito)}>
                           Liberar quarto
                         </button>
@@ -299,9 +302,11 @@ export default function ProntoSocorro() {
             <button type="button" className="btn-ghost" onClick={() => setDetalhe(null)}>
               Fechar
             </button>
-            <button type="button" className="btn-danger" onClick={darAlta}>
-              <DoorOpen className="h-4 w-4" /> Registrar alta
-            </button>
+            {podeEditar ? (
+              <button type="button" className="btn-danger" onClick={darAlta}>
+                <DoorOpen className="h-4 w-4" /> Registrar alta
+              </button>
+            ) : null}
           </>
         }
       >
@@ -330,7 +335,7 @@ export default function ProntoSocorro() {
               </div>
             </div>
 
-            <form onSubmit={salvarEvolucao} className="space-y-3">
+            <form onSubmit={salvarEvolucao} className={`space-y-3 ${podeEditar ? '' : 'hidden'}`}>
               <Field label="Nova evolução clínica" error={erroEvolucao} hint={`Registro assinado por ${user?.nome || 'profissional'} (${user?.funcao || '—'})`}>
                 <Textarea value={evolucao} onChange={(event) => setEvolucao(event.target.value)} placeholder="Paciente em bom estado geral, consciente, orientado..." />
               </Field>

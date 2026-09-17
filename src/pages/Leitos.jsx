@@ -22,7 +22,7 @@ import {
   StatusBadge,
   Textarea,
 } from '@/components/ui'
-import { BED_SECTORS, BED_STATUS, BED_WRITE_ROLES, DISCHARGE_REASONS } from '@/lib/constants'
+import { BED_SECTORS, BED_STATUS, DISCHARGE_REASONS } from '@/lib/constants'
 import { formatDate, formatDateTime, matches, percent } from '@/lib/format'
 
 const SECTOR_ORDER = BED_SECTORS.map((item) => item.setor)
@@ -31,11 +31,13 @@ const EMPTY_LEITO = { nome: '', setor: BED_SECTORS[0].setor, status: 'disponivel
 export default function Leitos() {
   const { items: leitos, loading, create, update, remove } = useCollection('leitos')
   const { items: visitantes } = useCollection('visitantes')
-  const { user } = useAuth()
+  const { user, canDo } = useAuth()
   const toast = useToast()
   const registrarLog = useAudit()
 
-  const podeEditar = BED_WRITE_ROLES.includes(user?.funcao)
+  const podeCriar = canDo('leitos', 'criar')
+  const podeEditar = canDo('leitos', 'editar')
+  const podeExcluir = canDo('leitos', 'excluir')
 
   const [busca, setBusca] = useState('')
   const [filtroSetor, setFiltroSetor] = useState('todos')
@@ -88,9 +90,10 @@ export default function Leitos() {
       .map(([setor, lista]) => [setor, lista.sort((a, b) => (a.numero || 0) - (b.numero || 0))])
   }, [filtrados])
 
-  function exigePermissao() {
-    if (podeEditar) return true
-    toast.error('Seu perfil tem acesso somente leitura ao mapa de leitos.')
+  /** As ações seguem as permissões definidas pelo administrador no cadastro do usuário. */
+  function exigePermissao(acao = 'editar') {
+    if (canDo('leitos', acao)) return true
+    toast.error(`Seu perfil não tem permissão para ${acao} no mapa de leitos.`)
     return false
   }
 
@@ -184,7 +187,7 @@ export default function Leitos() {
   /* ------------------------------------------------------- CRUD de leitos */
 
   function abrirNovoLeito() {
-    if (!exigePermissao()) return
+    if (!exigePermissao('criar')) return
     setFormLeito({ ...EMPTY_LEITO, setor: filtroSetor === 'todos' ? BED_SECTORS[0].setor : filtroSetor })
     setErrors({})
     setLeitoForm('novo')
@@ -234,7 +237,7 @@ export default function Leitos() {
   }
 
   async function excluirLeito(leito) {
-    if (!exigePermissao()) return
+    if (!exigePermissao('excluir')) return
     if (leito.status === 'ocupado') {
       toast.error(`O leito ${leito.nome} está ocupado e não pode ser excluído. Registre a alta primeiro.`)
       return
@@ -265,7 +268,7 @@ export default function Leitos() {
           description="150 leitos distribuídos em 9 setores — identificação por prontuário"
           icon={BedDouble}
           actions={
-            podeEditar ? (
+            podeCriar ? (
               <button type="button" className="btn-primary" onClick={abrirNovoLeito}>
                 <Plus className="h-4 w-4" /> Novo leito
               </button>
@@ -378,14 +381,14 @@ export default function Leitos() {
               Fechar
             </button>
             {podeEditar ? (
-              <>
-                <button type="button" className="btn-ghost" onClick={() => abrirEdicaoLeito(leitoAtual)}>
-                  <Pencil className="h-4 w-4" /> Editar
-                </button>
-                <button type="button" className="btn-danger" onClick={() => excluirLeito(leitoAtual)}>
-                  <Trash2 className="h-4 w-4" /> Excluir
-                </button>
-              </>
+              <button type="button" className="btn-ghost" onClick={() => abrirEdicaoLeito(leitoAtual)}>
+                <Pencil className="h-4 w-4" /> Editar
+              </button>
+            ) : null}
+            {podeExcluir ? (
+              <button type="button" className="btn-danger" onClick={() => excluirLeito(leitoAtual)}>
+                <Trash2 className="h-4 w-4" /> Excluir
+              </button>
             ) : null}
           </>
         }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react'
 import { useCollection } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, Select, StatusBadge, TableWrapper, Td, Textarea, Th } from '@/components/ui'
 import { SHIFTS, TEAM_AVAILABILITY, TEAM_ROLES } from '@/lib/constants'
@@ -11,6 +12,10 @@ const EMPTY = { nome: '', registro: '', funcao: 'Cirurgião', especialidade: '',
 export default function EquipeMedica() {
   const { items: equipe, loading, create, update, remove } = useCollection('equipe')
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('equipe', 'criar')
+  const podeEditar = canDo('equipe', 'editar')
+  const podeExcluir = canDo('equipe', 'excluir')
   const [busca, setBusca] = useState('')
   const [filtroFuncao, setFiltroFuncao] = useState('todas')
   const [modal, setModal] = useState(null)
@@ -90,11 +95,11 @@ export default function EquipeMedica() {
           title="Equipe médica e assistencial"
           description="Cadastro de profissionais do centro cirúrgico"
           icon={Stethoscope}
-          actions={
-            <button type="button" className="btn-primary" onClick={abrirNovo}>
+          actions={podeCriar ? (
+              <button type="button" className="btn-primary" onClick={abrirNovo}>
               <Plus className="h-4 w-4" /> Novo profissional
             </button>
-          }
+            ) : null}
         />
 
         <div className="space-y-3 border-b border-border px-5 py-4">
@@ -138,13 +143,15 @@ export default function EquipeMedica() {
                     <StatusBadge map={TEAM_AVAILABILITY} value={pessoa.disponibilidade} />
                   </Td>
                   <Td className="text-right">
-                    <div className="inline-flex gap-1">
-                      <button type="button" onClick={() => abrirEdicao(pessoa)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                    <div className="inline-flex gap-1">                      {podeEditar ? (
+                        <button type="button" onClick={() => abrirEdicao(pessoa)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button type="button" onClick={() => excluir(pessoa)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                      ) : null}                      {podeExcluir ? (
+                        <button type="button" onClick={() => excluir(pessoa)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </button>
+                      ) : null}
                     </div>
                   </Td>
                 </tr>

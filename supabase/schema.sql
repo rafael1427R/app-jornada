@@ -37,10 +37,14 @@ create table if not exists public.usuarios (
   master        boolean     not null default false,
   ativo         boolean     not null default true,
   setores       text[]      not null default '{}',
-  modulos       jsonb       not null default '[]'::jsonb, -- lista de ids ou a string "all"
+  modulos       jsonb       not null default '[]'::jsonb, -- legado: lista de ids ou a string "all"
+  permissoes    jsonb       not null default '{}'::jsonb, -- { moduloId: ["ver","criar","editar","excluir"] } ou "all"
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );
+
+-- Instalações anteriores ganham a coluna de permissões sem perder dados:
+alter table public.usuarios add column if not exists permissoes jsonb not null default '{}'::jsonb;
 
 -- ---------------------------------------------------------------------
 -- 2. Salas cirúrgicas
@@ -295,6 +299,73 @@ create index if not exists log_auditoria_acao_idx on public.log_auditoria (acao)
 create index if not exists log_auditoria_usuario_idx on public.log_auditoria (usuario);
 
 -- ---------------------------------------------------------------------
+-- 13. Nutrição — prescrição de dietas
+-- ---------------------------------------------------------------------
+create table if not exists public.dietas (
+  id                    uuid primary key default gen_random_uuid(),
+  prontuario            text        not null,
+  leito                 text        not null,
+  setor                 text        default '',
+  consistencia          text        not null default 'Geral',
+  modificacao           text        default 'Sem modificação',
+  via_enteral           text        default 'Não se aplica',
+  dieta_prescrita       text        default '',
+  acompanhante_refeicao boolean     not null default false,
+  observacoes           text        default '',
+  status                text        not null default 'ativa'
+                        check (status in ('ativa', 'suspensa', 'encerrada')),
+  prescrito_por         text        default '',
+  data_prescricao       date        default current_date,
+  criado_em             timestamptz not null default now(),
+  atualizado_em         timestamptz not null default now()
+);
+
+create index if not exists dietas_prontuario_idx on public.dietas (prontuario);
+create index if not exists dietas_status_idx on public.dietas (status);
+create index if not exists dietas_setor_idx on public.dietas (setor);
+
+-- ---------------------------------------------------------------------
+-- 14. Almoxarifado — produtos
+-- ---------------------------------------------------------------------
+create table if not exists public.produtos_estoque (
+  id             uuid primary key default gen_random_uuid(),
+  nome           text        not null,
+  categoria      text        not null default 'Secos',
+  unidade        text        not null default 'un',
+  estoque_atual  numeric     not null default 0,
+  estoque_minimo numeric     not null default 0,
+  custo_unitario numeric     not null default 0,
+  fornecedor     text        default '',
+  validade       date,
+  observacao     text        default '',
+  criado_em      timestamptz not null default now(),
+  atualizado_em  timestamptz not null default now()
+);
+
+create index if not exists produtos_estoque_categoria_idx on public.produtos_estoque (categoria);
+
+-- ---------------------------------------------------------------------
+-- 15. Almoxarifado — movimentações de estoque
+-- ---------------------------------------------------------------------
+create table if not exists public.movimentacoes_estoque (
+  id            uuid primary key default gen_random_uuid(),
+  produto_id    uuid references public.produtos_estoque(id) on delete cascade,
+  produto_nome  text        not null,
+  unidade       text        default '',
+  tipo          text        not null check (tipo in ('entrada', 'saida')),
+  quantidade    numeric     not null check (quantidade > 0),
+  saldo_apos    numeric     not null default 0,
+  motivo        text        default '',
+  usuario       text        default '',
+  data          timestamptz not null default now(),
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
+create index if not exists movimentacoes_estoque_data_idx on public.movimentacoes_estoque (data desc);
+create index if not exists movimentacoes_estoque_produto_idx on public.movimentacoes_estoque (produto_id);
+
+-- ---------------------------------------------------------------------
 -- Triggers de atualização
 -- ---------------------------------------------------------------------
 do $$
@@ -303,7 +374,8 @@ declare
 begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
-    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria'
+    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque'
   ] loop
     execute format('drop trigger if exists set_atualizado_em on public.%I', tabela);
     execute format(
@@ -327,7 +399,8 @@ declare
 begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
-    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria'
+    'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque'
   ] loop
     execute format('alter table public.%I enable row level security', tabela);
     execute format('drop policy if exists "acesso_interno" on public.%I', tabela);

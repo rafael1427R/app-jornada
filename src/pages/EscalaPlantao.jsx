@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarClock, ChevronLeft, ChevronRight, Pencil, Plus, Printer, Trash2 } from 'lucide-react'
 import { useCollection, useCollections } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, Field, Input, LoadingState, Modal, Select, StatusBadge, Textarea } from '@/components/ui'
 import { SCHEDULE_STATUS, SHIFTS, TEAM_ROLES } from '@/lib/constants'
@@ -36,6 +37,10 @@ export default function EscalaPlantao() {
   const { items: escala, loading, create, update, remove } = useCollection('escala')
   const auxiliares = useCollections(['equipe', 'salas'])
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('escala', 'criar')
+  const podeEditar = canDo('escala', 'editar')
+  const podeExcluir = canDo('escala', 'excluir')
 
   const [referencia, setReferencia] = useState(todayISO())
   const [modal, setModal] = useState(null)
@@ -126,10 +131,11 @@ export default function EscalaPlantao() {
             <>
               <button type="button" className="btn-ghost" onClick={imprimir}>
                 <Printer className="h-4 w-4" /> Imprimir
-              </button>
-              <button type="button" className="btn-primary" onClick={() => abrirNovo()}>
+              </button>              {podeCriar ? (
+                <button type="button" className="btn-primary" onClick={() => abrirNovo()}>
                 <Plus className="h-4 w-4" /> Novo plantão
               </button>
+              ) : null}
             </>
           }
         />
@@ -186,19 +192,22 @@ export default function EscalaPlantao() {
                               {item.substituto ? <p className="truncate text-[11px] text-amber-600">Subst.: {item.substituto}</p> : null}
                               <div className="mt-1.5 flex items-center justify-between gap-1">
                                 <StatusBadge map={SCHEDULE_STATUS} value={item.status} />
-                                <div className="flex gap-0.5 opacity-0 transition group-hover:opacity-100">
-                                  <button type="button" onClick={() => abrirEdicao(item)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                                <div className="flex gap-0.5 opacity-0 transition group-hover:opacity-100">                                  {podeEditar ? (
+                                    <button type="button" onClick={() => abrirEdicao(item)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-primary" aria-label="Editar">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </button>
-                                  <button type="button" onClick={() => excluir(item)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                                  ) : null}                                  {podeExcluir ? (
+                                    <button type="button" onClick={() => excluir(item)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
                           ))}
                           <button
                             type="button"
+                            disabled={!podeCriar}
                             onClick={() => abrirNovo(dia.iso, turno)}
                             className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 py-1.5 text-[11px] font-semibold text-slate-400 transition hover:border-primary hover:text-primary"
                           >

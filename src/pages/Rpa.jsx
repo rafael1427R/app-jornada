@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, HeartPulse, LogIn, LogOut, Plus, Trash2 } from 'lucide-react'
 import { useCollection } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Select, StatusBadge, Textarea } from '@/components/ui'
 import { RPA_ALERT_MINUTES } from '@/lib/constants'
@@ -18,6 +19,10 @@ const EMPTY_ADMISSAO = { prontuario: '', procedimento: '', aldrete: 8, observaca
 export default function Rpa() {
   const { items: leitos, loading, create, update, remove } = useCollection('rpa')
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('rpa', 'criar')
+  const podeEditar = canDo('rpa', 'editar')
+  const podeExcluir = canDo('rpa', 'excluir')
   useNow(30000)
 
   const [admissao, setAdmissao] = useState(null)
@@ -111,11 +116,11 @@ export default function Rpa() {
           title="Recuperação Pós-Anestésica (RPA)"
           description="Entrada, saída e tempo de permanência por leito"
           icon={HeartPulse}
-          actions={
-            <button type="button" className="btn-primary" onClick={() => setNovoLeito(true)}>
+          actions={podeCriar ? (
+              <button type="button" className="btn-primary" onClick={() => setNovoLeito(true)}>
               <Plus className="h-4 w-4" /> Novo leito
             </button>
-          }
+            ) : null}
         />
 
         {ordenados.length === 0 ? (
@@ -149,24 +154,26 @@ export default function Rpa() {
                   )}
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {leito.status === 'disponivel' ? (
+                    {podeEditar && leito.status === 'disponivel' ? (
                       <button type="button" className="btn-primary flex-1" onClick={() => abrirAdmissao(leito)}>
                         <LogIn className="h-4 w-4" /> Entrada
                       </button>
                     ) : null}
-                    {leito.status === 'ocupado' ? (
+                    {podeEditar && leito.status === 'ocupado' ? (
                       <button type="button" className="btn-accent flex-1" onClick={() => darSaida(leito)}>
                         <LogOut className="h-4 w-4" /> Saída
                       </button>
                     ) : null}
-                    {leito.status === 'limpeza' ? (
+                    {podeEditar && leito.status === 'limpeza' ? (
                       <button type="button" className="btn-ghost flex-1" onClick={() => liberar(leito)}>
                         Liberar leito
                       </button>
                     ) : null}
-                    <button type="button" className="btn-ghost px-2.5 text-red-600 hover:bg-red-50" onClick={() => excluirLeito(leito)} aria-label="Excluir leito">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {podeExcluir ? (
+                      <button type="button" className="btn-ghost px-2.5 text-red-600 hover:bg-red-50" onClick={() => excluirLeito(leito)} aria-label="Excluir leito">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               )

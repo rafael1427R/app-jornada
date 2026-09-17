@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Building2, LayoutGrid, Megaphone, Pencil, Plus, RefreshCw, Trash2, Volume2 } from 'lucide-react'
 import { useCollection } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, Select, StatusBadge, Textarea } from '@/components/ui'
 import { ROOM_STATUS, ROOM_STATUS_KEYS } from '@/lib/constants'
@@ -12,6 +13,10 @@ const EMPTY_ROOM = { nome: '', tipo: '', setor: 'Centro Cirúrgico', andar: '', 
 export default function MapaCirurgico() {
   const { items: salas, loading, create, update, remove } = useCollection('salas')
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('mapa', 'criar')
+  const podeEditar = canDo('mapa', 'editar')
+  const podeExcluir = canDo('mapa', 'excluir')
   const [filtro, setFiltro] = useState('todos')
   const [callingId, setCallingId] = useState(null)
   const [callModal, setCallModal] = useState(null)
@@ -144,11 +149,11 @@ export default function MapaCirurgico() {
           title="Mapa cirúrgico em tempo real"
           description="Salas agrupadas por setor · chamada de pacientes por voz (somente prontuário)"
           icon={LayoutGrid}
-          actions={
-            <button type="button" className="btn-primary" onClick={abrirNova}>
+          actions={podeCriar ? (
+              <button type="button" className="btn-primary" onClick={abrirNova}>
               <Plus className="h-4 w-4" /> Nova sala
             </button>
-          }
+            ) : null}
         />
         <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3">
           <Pill active={filtro === 'todos'} onClick={() => setFiltro('todos')}>
@@ -198,21 +203,24 @@ export default function MapaCirurgico() {
                           <button
                             type="button"
                             onClick={() => iniciarChamada(sala)}
-                            disabled={chamando}
+                            disabled={chamando || !podeEditar}
                             className={`btn ${chamando ? 'animate-pulse bg-accent text-white' : 'bg-primary text-white hover:bg-primary-hover'} flex-1`}
                           >
                             {chamando ? <Volume2 className="h-4 w-4" /> : <Megaphone className="h-4 w-4" />}
                             {chamando ? 'Chamando...' : 'Chamar Paciente'}
                           </button>
-                          <button type="button" onClick={() => abrirEdicao(sala)} className="btn-ghost px-2.5" aria-label="Editar sala">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button type="button" onClick={() => excluirSala(sala)} className="btn-ghost px-2.5 text-red-600 hover:bg-red-50" aria-label="Excluir sala">
+                          {podeEditar ? (
+                            <button type="button" onClick={() => abrirEdicao(sala)} className="btn-ghost px-2.5" aria-label="Editar sala">
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          ) : null}                          {podeExcluir ? (
+                            <button type="button" onClick={() => excluirSala(sala)} className="btn-ghost px-2.5 text-red-600 hover:bg-red-50" aria-label="Excluir sala">
                             <Trash2 className="h-4 w-4" />
                           </button>
+                          ) : null}
                         </div>
 
-                        <Select className="mt-2 text-xs" value={sala.status} onChange={(event) => mudarStatus(sala, event.target.value)}>
+                        <Select className="mt-2 text-xs" value={sala.status} disabled={!podeEditar} onChange={(event) => mudarStatus(sala, event.target.value)}>
                           {ROOM_STATUS_KEYS.map((key) => (
                             <option key={key} value={key}>
                               {ROOM_STATUS[key].label}

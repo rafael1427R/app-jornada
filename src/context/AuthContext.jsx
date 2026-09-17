@@ -4,6 +4,7 @@ import { useCollection } from '@/data/store'
 import { MODULES } from '@/lib/constants'
 import { readStorage, writeStorage } from '@/lib/storage'
 import { normalize } from '@/lib/format'
+import { hasAction, normalizePermissions, visibleModules } from '@/lib/permissions'
 
 const AuthContext = createContext(null)
 
@@ -42,21 +43,20 @@ export function AuthProvider({ children }) {
     setSession(null)
   }, [])
 
+  /** Mapa { moduloId: ['ver', 'criar', ...] } já normalizado. */
+  const permissions = useMemo(() => normalizePermissions(user), [user])
+
   const allowedModules = useMemo(() => {
     if (!user) return []
-    if (user.modulos === 'all' || user.master) return MODULES
-    const allowed = Array.isArray(user.modulos) ? user.modulos : []
-    return MODULES.filter((module) => allowed.includes(module.id))
-  }, [user])
+    const visiveis = visibleModules(permissions)
+    return MODULES.filter((module) => visiveis.includes(module.id))
+  }, [user, permissions])
 
-  const can = useCallback(
-    (moduleId) => {
-      if (!user) return false
-      if (user.master || user.modulos === 'all') return true
-      return Array.isArray(user.modulos) && user.modulos.includes(moduleId)
-    },
-    [user],
-  )
+  /** Acesso ao módulo (entrar na tela). */
+  const can = useCallback((moduleId) => hasAction(permissions, moduleId, 'ver'), [permissions])
+
+  /** Acesso a uma ação dentro do módulo: criar, editar ou excluir. */
+  const canDo = useCallback((moduleId, action) => hasAction(permissions, moduleId, action), [permissions])
 
   const value = useMemo(
     () => ({
@@ -69,13 +69,15 @@ export function AuthProvider({ children }) {
       login,
       logout,
       can,
+      canDo,
+      permissions,
       allowedModules,
       createUser: create,
       updateUser: update,
       removeUser: remove,
       refreshUsers: refresh,
     }),
-    [user, session, usuarios, loading, hydrated, login, logout, can, allowedModules, create, update, remove, refresh],
+    [user, session, usuarios, loading, hydrated, login, logout, can, canDo, permissions, allowedModules, create, update, remove, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

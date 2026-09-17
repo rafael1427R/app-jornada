@@ -13,6 +13,9 @@ export const MODULES = [
   { id: 'visitantes', label: 'Visitantes / Acompanhantes', path: '/visitantes', icon: 'IdCard' },
   { id: 'leitos', label: 'Leitos', path: '/leitos', icon: 'BedDouble' },
   { id: 'pronto-socorro', label: 'Pronto Socorro Digital', path: '/pronto-socorro', icon: 'Ambulance' },
+  { id: 'nutricao', label: 'Nutrição / Dietas', path: '/nutricao', icon: 'Salad' },
+  { id: 'etiquetas', label: 'Etiquetas de Dieta', path: '/etiquetas', icon: 'Tags' },
+  { id: 'almoxarifado', label: 'Almoxarifado', path: '/almoxarifado', icon: 'Package' },
   { id: 'auditoria', label: 'Log de Auditoria', path: '/auditoria', icon: 'ScrollText' },
   { id: 'usuarios', label: 'Usuários e Acessos', path: '/usuarios', icon: 'ShieldCheck' },
 ]
@@ -142,10 +145,50 @@ export const BED_SECTORS = [
   { setor: 'Isolamento', prefixo: 'ISO', total: 10 },
 ]
 
-/* -------------------------------------------------------- Auditoria */
+/* --------------------------------------------------------- Nutrição */
 
-/** Funções autorizadas a alterar leitos (as demais têm acesso somente leitura). */
-export const BED_WRITE_ROLES = ['Administrador', 'Enfermeiro', 'Técnico de Enfermagem']
+export const DIET_CONSISTENCY = ['Geral', 'Branda', 'Pastosa', 'Líquida completa', 'Líquida restrita', 'Zero (jejum)']
+
+export const DIET_MODIFICATIONS = [
+  'Sem modificação',
+  'Hipossódica',
+  'Para diabéticos',
+  'Hipogordurosa',
+  'Hipoproteica',
+  'Hiperproteica',
+  'Sem lactose',
+  'Sem glúten',
+]
+
+export const ENTERAL_ROUTES = ['Não se aplica', 'Sonda nasogástrica', 'Sonda nasoenteral', 'Gastrostomia', 'Jejunostomia']
+
+export const MEALS = [
+  { id: 'desjejum', label: 'Desjejum', hora: '07:00' },
+  { id: 'colacao', label: 'Colação', hora: '09:30' },
+  { id: 'almoco', label: 'Almoço', hora: '11:30' },
+  { id: 'lanche', label: 'Lanche', hora: '15:00' },
+  { id: 'jantar', label: 'Jantar', hora: '18:00' },
+  { id: 'ceia', label: 'Ceia', hora: '21:00' },
+]
+
+export const DIET_STATUS = {
+  ativa: { label: 'Ativa', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  suspensa: { label: 'Suspensa', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
+  encerrada: { label: 'Encerrada', badge: 'bg-slate-100 text-slate-600 border-slate-200' },
+}
+
+/* ----------------------------------------------------- Almoxarifado */
+
+export const STOCK_CATEGORIES = ['Secos', 'Hortifrúti', 'Carnes e frios', 'Descartáveis', 'Limpeza', 'Dietas e enteral']
+
+export const STOCK_UNITS = ['kg', 'g', 'L', 'mL', 'un', 'cx', 'pct', 'fr']
+
+export const STOCK_MOVES = {
+  entrada: { label: 'Entrada', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  saida: { label: 'Saída', badge: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+/* -------------------------------------------------------- Auditoria */
 
 export const AUDIT_ACTIONS = {
   criar: { label: 'Criação', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },

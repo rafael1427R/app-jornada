@@ -4,9 +4,10 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Badge, Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, Select, TableWrapper, Td, Th } from '@/components/ui'
 import { MODULES, ROLES, SECTORS } from '@/lib/constants'
+import { ACTION_KEYS, ACTIONS, PERMISSION_TEMPLATES, normalizePermissions } from '@/lib/permissions'
 import { formatDateTime, matches, normalize } from '@/lib/format'
 
-const EMPTY = { nome: '', usuario: '', senha: '', funcao: 'Enfermeiro', ativo: true, setores: [], modulos: ['dashboard'] }
+const EMPTY = { nome: '', usuario: '', senha: '', funcao: 'Enfermeiro', ativo: true, setores: [], permissoes: {} }
 
 export default function Usuarios() {
   const { usuarios, loadingUsers, createUser, updateUser, removeUser, user } = useAuth()
@@ -34,24 +35,65 @@ export default function Usuarios() {
     [usuarios],
   )
 
-  const modulosDo = (item) => (item.modulos === 'all' || item.master ? MODULES.map((module) => module.id) : item.modulos || [])
+  const resumoPermissoes = (item) => {
+    const permissoes = normalizePermissions(item)
+    const modulos = Object.keys(permissoes).length
+    const escrita = Object.values(permissoes).filter((acoes) => acoes.some((acao) => acao !== 'ver')).length
+    return { modulos, escrita }
+  }
+
+  /* ------------------------------------------------------- Formulário */
 
   function abrirNovo() {
-    setForm(EMPTY)
+    setForm({ ...EMPTY, permissoes: { dashboard: ['ver'] } })
     setErrors({})
     setModal('novo')
   }
 
   function abrirEdicao(item) {
-    setForm({ ...EMPTY, ...item, senha: item.senha || '', modulos: modulosDo(item), setores: item.setores || [] })
+    setForm({ ...EMPTY, ...item, setores: item.setores || [], permissoes: normalizePermissions(item) })
     setErrors({})
     setModal(item.id)
   }
 
-  function toggleLista(campo, valor) {
+  function toggleSetor(setor) {
     setForm((current) => ({
       ...current,
-      [campo]: current[campo].includes(valor) ? current[campo].filter((item) => item !== valor) : [...current[campo], valor],
+      setores: current.setores.includes(setor) ? current.setores.filter((item) => item !== setor) : [...current.setores, setor],
+    }))
+  }
+
+  /** Liga/desliga uma ação de um módulo. "ver" é pré-requisito das demais. */
+  function toggleAcao(moduleId, acao) {
+    setForm((current) => {
+      const atuais = current.permissoes[moduleId] || []
+      const tinha = atuais.includes(acao)
+      let proximas = tinha ? atuais.filter((item) => item !== acao) : [...atuais, acao]
+
+      if (!tinha && acao !== 'ver' && !proximas.includes('ver')) proximas.push('ver')
+      if (tinha && acao === 'ver') proximas = []
+
+      const permissoes = { ...current.permissoes }
+      if (proximas.length) permissoes[moduleId] = ACTION_KEYS.filter((item) => proximas.includes(item))
+      else delete permissoes[moduleId]
+      return { ...current, permissoes }
+    })
+  }
+
+  function alternarModuloCompleto(moduleId) {
+    setForm((current) => {
+      const atuais = current.permissoes[moduleId] || []
+      const permissoes = { ...current.permissoes }
+      if (atuais.length === ACTION_KEYS.length) delete permissoes[moduleId]
+      else permissoes[moduleId] = [...ACTION_KEYS]
+      return { ...current, permissoes }
+    })
+  }
+
+  function aplicarTemplate(acoes) {
+    setForm((current) => ({
+      ...current,
+      permissoes: Object.fromEntries(MODULES.map((module) => [module.id, [...acoes]])),
     }))
   }
 
@@ -64,7 +106,7 @@ export default function Usuarios() {
       nextErrors.usuario = 'Já existe um usuário com este login.'
     }
     if (!String(form.senha).trim() || String(form.senha).length < 4) nextErrors.senha = 'A senha deve ter ao menos 4 caracteres.'
-    if (!form.modulos.length) nextErrors.modulos = 'Selecione ao menos um módulo.'
+    if (!Object.keys(form.permissoes).length) nextErrors.permissoes = 'Libere ao menos um módulo para este usuário.'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
@@ -76,18 +118,22 @@ export default function Usuarios() {
       funcao: form.funcao,
       ativo: form.ativo,
       setores: form.setores,
-      modulos: editando?.master ? 'all' : form.modulos,
+      permissoes: editando?.master ? 'all' : form.permissoes,
+      // Mantido em sincronia para compatibilidade com cadastros antigos.
+      modulos: editando?.master ? 'all' : Object.keys(form.permissoes),
     }
 
     if (modal === 'novo') {
       await createUser({ ...payload, master: false })
-      toast.success('Usuário criado com sucesso.')
+      toast.success('Usuário criado com as permissões definidas.')
     } else {
       await updateUser(modal, payload)
-      toast.success('Usuário atualizado.')
+      toast.success('Permissões atualizadas.')
     }
     setModal(null)
   }
+
+  /* ----------------------------------------------------------- Ações */
 
   async function excluir(item) {
     if (item.master) {
@@ -147,7 +193,7 @@ export default function Usuarios() {
       <Card>
         <CardHeader
           title="Usuários e acessos"
-          description="Controle de perfis, setores e módulos liberados por usuário"
+          description="O Administrador Master define, por usuário, quais módulos aparecem no menu e o que ele pode fazer em cada um"
           icon={ShieldCheck}
           actions={
             <button type="button" className="btn-primary" onClick={abrirNovo}>
@@ -170,52 +216,58 @@ export default function Usuarios() {
                 <Th>Usuário</Th>
                 <Th>Função</Th>
                 <Th>Setores</Th>
-                <Th>Módulos</Th>
+                <Th>Permissões</Th>
                 <Th>Situação</Th>
                 <Th className="text-right">Ações</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {lista.map((item) => (
-                <tr key={item.id} className={`transition hover:bg-slate-50 ${item.ativo === false ? 'bg-slate-50/70 opacity-70' : ''}`}>
-                  <Td className="font-semibold">
-                    {item.nome}
-                    {item.master ? <Badge className="ml-2 border-primary/20 bg-primary-light text-primary">Master</Badge> : null}
-                  </Td>
-                  <Td className="font-mono text-xs">{item.usuario}</Td>
-                  <Td>{item.funcao}</Td>
-                  <Td className="max-w-[220px] truncate text-slate-500">{(item.setores || []).join(', ') || '—'}</Td>
-                  <Td>
-                    <Badge className="border-slate-200 bg-slate-100 text-slate-600">{modulosDo(item).length} de {MODULES.length}</Badge>
-                  </Td>
-                  <Td>
-                    <button type="button" onClick={() => alternarAtivo(item)}>
-                      <Badge className={item.ativo === false ? 'border-red-200 bg-red-100 text-red-700' : 'border-emerald-200 bg-emerald-100 text-emerald-700'}>
-                        {item.ativo === false ? 'Inativo' : 'Ativo'}
+              {lista.map((item) => {
+                const resumo = resumoPermissoes(item)
+                return (
+                  <tr key={item.id} className={`transition hover:bg-slate-50 ${item.ativo === false ? 'bg-slate-50/70 opacity-70' : ''}`}>
+                    <Td className="font-semibold">
+                      {item.nome}
+                      {item.master ? <Badge className="ml-2 border-primary/20 bg-primary-light text-primary">Master</Badge> : null}
+                    </Td>
+                    <Td className="font-mono text-xs">{item.usuario}</Td>
+                    <Td>{item.funcao}</Td>
+                    <Td className="max-w-[200px] truncate text-slate-500">{(item.setores || []).join(', ') || '—'}</Td>
+                    <Td>
+                      <Badge className="border-slate-200 bg-slate-100 text-slate-600">
+                        {resumo.modulos} de {MODULES.length} módulos
                       </Badge>
-                    </button>
-                  </Td>
-                  <Td className="text-right">
-                    <div className="inline-flex gap-1">
-                      <button type="button" onClick={() => abrirTrocaSenha(item)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Alterar senha">
-                        <KeyRound className="h-4 w-4" />
+                      <span className="ml-2 text-xs text-slate-400">{resumo.escrita} com escrita</span>
+                    </Td>
+                    <Td>
+                      <button type="button" onClick={() => alternarAtivo(item)}>
+                        <Badge className={item.ativo === false ? 'border-red-200 bg-red-100 text-red-700' : 'border-emerald-200 bg-emerald-100 text-emerald-700'}>
+                          {item.ativo === false ? 'Inativo' : 'Ativo'}
+                        </Badge>
                       </button>
-                      <button type="button" onClick={() => abrirEdicao(item)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => excluir(item)}
-                        disabled={item.master}
-                        className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </Td>
-                </tr>
-              ))}
+                    </Td>
+                    <Td className="text-right">
+                      <div className="inline-flex gap-1">
+                        <button type="button" onClick={() => abrirTrocaSenha(item)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Alterar senha">
+                          <KeyRound className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => abrirEdicao(item)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => excluir(item)}
+                          disabled={item.master}
+                          className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </Td>
+                  </tr>
+                )
+              })}
             </tbody>
           </TableWrapper>
         )}
@@ -226,7 +278,7 @@ export default function Usuarios() {
         onClose={() => setModal(null)}
         size="lg"
         title={modal === 'novo' ? 'Novo usuário' : 'Editar usuário'}
-        description="Defina função, setores e os módulos que aparecerão no menu deste usuário."
+        description="Marque, módulo a módulo, o que este usuário poderá visualizar, criar, editar e excluir."
         footer={
           <>
             <button type="button" className="btn-ghost" onClick={() => setModal(null)}>
@@ -270,7 +322,7 @@ export default function Usuarios() {
             <p className="label">Setores permitidos</p>
             <div className="flex flex-wrap gap-2">
               {SECTORS.map((setor) => (
-                <Pill key={setor} active={form.setores.includes(setor)} onClick={() => toggleLista('setores', setor)}>
+                <Pill key={setor} active={form.setores.includes(setor)} onClick={() => toggleSetor(setor)}>
                   {setor}
                 </Pill>
               ))}
@@ -278,31 +330,55 @@ export default function Usuarios() {
           </section>
 
           <section>
-            <div className="mb-1 flex items-center justify-between">
-              <p className="label mb-0">Módulos liberados</p>
-              <div className="flex gap-2">
-                <button type="button" className="text-xs font-semibold text-primary hover:underline" onClick={() => setForm({ ...form, modulos: MODULES.map((module) => module.id) })}>
-                  Selecionar todos
-                </button>
-                <button type="button" className="text-xs font-semibold text-slate-400 hover:underline" onClick={() => setForm({ ...form, modulos: [] })}>
-                  Limpar
-                </button>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="label mb-0">Permissões por módulo</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(PERMISSION_TEMPLATES).map(([nome, acoes]) => (
+                  <Pill key={nome} onClick={() => aplicarTemplate(acoes)}>
+                    {nome}
+                  </Pill>
+                ))}
+                <Pill onClick={() => setForm({ ...form, permissoes: {} })}>Limpar</Pill>
               </div>
             </div>
-            {errors.modulos ? <p className="mb-2 text-xs font-medium text-red-600">{errors.modulos}</p> : null}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {MODULES.map((module) => (
-                <label key={module.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                    checked={form.modulos.includes(module.id)}
-                    onChange={() => toggleLista('modulos', module.id)}
-                  />
-                  {module.label}
-                </label>
-              ))}
+            {errors.permissoes ? <p className="mb-2 text-xs font-medium text-red-600">{errors.permissoes}</p> : null}
+
+            <div className="overflow-hidden rounded-xl border border-border">
+              <div className="grid grid-cols-[1fr_repeat(4,56px)] gap-1 bg-muted/50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:grid-cols-[1fr_repeat(4,80px)]">
+                <span>Módulo</span>
+                {ACTION_KEYS.map((acao) => (
+                  <span key={acao} className="text-center">
+                    {ACTIONS[acao].short}
+                  </span>
+                ))}
+              </div>
+              <div className="max-h-72 divide-y divide-border overflow-y-auto scrollbar-thin">
+                {MODULES.map((module) => {
+                  const acoes = form.permissoes[module.id] || []
+                  return (
+                    <div key={module.id} className="grid grid-cols-[1fr_repeat(4,56px)] items-center gap-1 px-3 py-2 transition hover:bg-slate-50 sm:grid-cols-[1fr_repeat(4,80px)]">
+                      <button type="button" onClick={() => alternarModuloCompleto(module.id)} className="truncate text-left text-sm font-medium text-slate-700 hover:text-primary" title="Marcar/desmarcar todas as ações">
+                        {module.label}
+                      </button>
+                      {ACTION_KEYS.map((acao) => (
+                        <label key={acao} className="flex cursor-pointer items-center justify-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                            checked={acoes.includes(acao)}
+                            onChange={() => toggleAcao(module.id, acao)}
+                            aria-label={`${ACTIONS[acao].label} em ${module.label}`}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Clique no nome do módulo para marcar tudo de uma vez. "Visualizar" é obrigatório — ao marcar criar, editar ou excluir, ele é ativado automaticamente.
+            </p>
           </section>
         </form>
       </Modal>
@@ -336,9 +412,7 @@ export default function Usuarios() {
           <Field label="Confirmar nova senha" error={errosSenha.confirmacao}>
             <Input type="password" value={senhas.confirmacao} onChange={(event) => setSenhas({ ...senhas, confirmacao: event.target.value })} />
           </Field>
-          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Última atualização do cadastro: {formatDateTime(senhaModal?.criado_em)}
-          </p>
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Cadastro criado em {formatDateTime(senhaModal?.criado_em)}</p>
         </form>
       </Modal>
     </div>

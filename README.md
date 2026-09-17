@@ -60,8 +60,11 @@ A sessão fica em `localStorage` (`sys-session-v1`) e os usuários em
 | 10 | Visitantes | `/visitantes` | Permanência de 1 hora, contador MM:SS, crachá térmico e relatório |
 | 11 | Leitos | `/leitos` | 150 leitos em 9 setores: CRUD de leitos, ocupação por prontuário, alta com motivo (alta/transferência/óbito), barra de ocupação por setor e vínculo com o acompanhante |
 | 12 | Pronto Socorro Digital | `/pronto-socorro` | 30 quartos digitais: admissão, evolução clínica e alta |
-| 13 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
-| 14 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
+| 13 | Nutrição / Dietas | `/nutricao` | Prescrição de dieta por prontuário/leito (consistência, modificação terapêutica, via enteral) e mapa de refeições por setor |
+| 14 | Etiquetas de Dieta | `/etiquetas` | Impressão térmica 70mm × 40mm por refeição, com etiqueta extra para o acompanhante |
+| 15 | Almoxarifado | `/almoxarifado` | Estoque da UAN: saldo, entrada/saída com validação de saldo, alerta de mínimo e histórico |
+| 16 | Log de Auditoria | `/auditoria` | Rastreabilidade: quem fez, o quê e quando (criação, edição, exclusão, ocupação, alta e mudança de status) |
+| 17 | Usuários e Acessos | `/usuarios` | CRUD de usuários, setores e módulos liberados |
 | — | Painel Acompanhantes | `/status` | **Rota pública, sem login**, status por prontuário |
 
 O menu lateral exibe **apenas os módulos liberados** para o usuário conectado.
@@ -140,6 +143,9 @@ Reinicie o `npm run dev`. O rodapé da barra lateral passa a indicar
 | `ps_leitos` | 30 quartos digitais do pronto socorro (evoluções em `jsonb`) |
 | `ps_altas` | Log de altas do pronto socorro |
 | `log_auditoria` | Rastreabilidade das ações (usuário, função, ação, registro, prontuário) |
+| `dietas` | Prescrição nutricional por prontuário e leito |
+| `produtos_estoque` | Itens do almoxarifado da UAN |
+| `movimentacoes_estoque` | Entradas e saídas de estoque |
 
 A view `painel_acompanhantes` expõe somente prontuário, horário e status do
 dia — é a base mínima para o painel público.
@@ -186,21 +192,35 @@ durante o uso, a operação cai automaticamente para o armazenamento local.
 
 Chaves de `localStorage`: `sys-session-v1`, `sys-users-v1`, `visitors-v1`,
 `leitos-v1`, `ps-v1`, `ps-altas-v1`, `cirurgias-v1`, `salas-v1`, `equipe-v1`,
-`equipamentos-v1`, `escala-v1`, `rpa-v1`, `audit-v1`.
+`equipamentos-v1`, `escala-v1`, `rpa-v1`, `audit-v1`, `dietas-v1`, `estoque-v1`,
+`estoque-mov-v1`.
 
 ---
 
-## Permissões no mapa de leitos
+## Permissões
 
-Além da liberação por módulo (em Usuários e Acessos), as ações de escrita no
-mapa de leitos são restritas às funções listadas em `BED_WRITE_ROLES`
-(`src/lib/constants.js`): Administrador, Enfermeiro e Técnico de Enfermagem.
-As demais funções enxergam o mapa em modo somente leitura. Para liberar outra
-função, basta incluí-la nessa constante.
+O Administrador Master define, **por usuário e por módulo**, quais das quatro
+ações ficam liberadas:
 
-Toda ação de escrita (criar, editar, excluir, ocupar, dar alta e mudar status)
-grava um registro no **Log de Auditoria**, com usuário, função, data/hora,
-leito, prontuário e descrição.
+| Ação | O que libera |
+| --- | --- |
+| **Visualizar** | O módulo aparece no menu e a tela pode ser aberta |
+| **Criar** | Botões "Novo/Nova…" e admissões |
+| **Editar** | Alterações de status, ocupações, altas, movimentações de estoque |
+| **Excluir** | Remoção de registros |
+
+"Visualizar" é pré-requisito: ao marcar criar, editar ou excluir, ele é ativado
+automaticamente. Sem "visualizar", o módulo some do menu e a rota devolve
+"Acesso não autorizado". Os botões de cada ação simplesmente não são
+renderizados para quem não tem a permissão.
+
+As permissões ficam em `usuarios.permissoes`, no formato
+`{ "leitos": ["ver", "criar", "editar"], "nutricao": ["ver"] }`. Cadastros
+antigos, que usavam apenas a lista `modulos`, continuam válidos: são lidos como
+acesso total aos módulos daquela lista (`src/lib/permissions.js`).
+
+Toda ação de escrita em leitos e dietas grava um registro no **Log de
+Auditoria**, com usuário, função, data/hora, registro, prontuário e descrição.
 
 ## Impressão
 

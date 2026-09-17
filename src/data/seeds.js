@@ -202,6 +202,35 @@ export function seedVisitantes() {
   return []
 }
 
+/* ---------------------------------------------------------- Nutrição */
+
+export function seedDietas() {
+  return []
+}
+
+export function seedProdutos() {
+  const rows = [
+    { nome: 'Arroz tipo 1', categoria: 'Secos', unidade: 'kg', estoque_atual: 120, estoque_minimo: 40, custo_unitario: 5.4, fornecedor: 'Distribuidora Central' },
+    { nome: 'Feijão carioca', categoria: 'Secos', unidade: 'kg', estoque_atual: 60, estoque_minimo: 30, custo_unitario: 7.9, fornecedor: 'Distribuidora Central' },
+    { nome: 'Peito de frango congelado', categoria: 'Carnes e frios', unidade: 'kg', estoque_atual: 45, estoque_minimo: 50, custo_unitario: 18.5, fornecedor: 'Frigorífico Piauí' },
+    { nome: 'Dieta enteral padrão 1.0', categoria: 'Dietas e enteral', unidade: 'fr', estoque_atual: 28, estoque_minimo: 20, custo_unitario: 32.0, fornecedor: 'Nutrimed' },
+    { nome: 'Espessante alimentar', categoria: 'Dietas e enteral', unidade: 'un', estoque_atual: 8, estoque_minimo: 12, custo_unitario: 46.9, fornecedor: 'Nutrimed' },
+    { nome: 'Marmitex descartável', categoria: 'Descartáveis', unidade: 'un', estoque_atual: 900, estoque_minimo: 300, custo_unitario: 1.2, fornecedor: 'EmbalaMais' },
+    { nome: 'Detergente neutro 5L', categoria: 'Limpeza', unidade: 'un', estoque_atual: 14, estoque_minimo: 6, custo_unitario: 21.0, fornecedor: 'CleanPro' },
+  ]
+  return rows.map((row) => ({
+    id: uid(),
+    ...row,
+    validade: '',
+    observacao: '',
+    criado_em: new Date().toISOString(),
+  }))
+}
+
+export function seedMovimentacoes() {
+  return []
+}
+
 /* --------------------------------------------------------- Auditoria */
 
 export function seedAuditoria() {

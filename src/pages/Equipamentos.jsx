@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Pencil, Plus, Trash2, Wrench } from 'lucide-react'
 import { useCollection, useCollections } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, KpiCard, KpiGrid, LoadingState, Modal, Pill, SearchInput, Select, StatusBadge, TableWrapper, Td, Textarea, Th } from '@/components/ui'
 import { EQUIPMENT_STATUS, EQUIPMENT_TYPES } from '@/lib/constants'
@@ -23,6 +24,10 @@ export default function Equipamentos() {
   const { items: equipamentos, loading, create, update, remove } = useCollection('equipamentos')
   const auxiliares = useCollections(['salas'])
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('equipamentos', 'criar')
+  const podeEditar = canDo('equipamentos', 'editar')
+  const podeExcluir = canDo('equipamentos', 'excluir')
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [modal, setModal] = useState(null)
@@ -110,11 +115,11 @@ export default function Equipamentos() {
           title="Equipamentos"
           description="Controle patrimonial e manutenção preventiva"
           icon={Wrench}
-          actions={
-            <button type="button" className="btn-primary" onClick={abrirNovo}>
+          actions={podeCriar ? (
+              <button type="button" className="btn-primary" onClick={abrirNovo}>
               <Plus className="h-4 w-4" /> Novo equipamento
             </button>
-          }
+            ) : null}
         />
 
         <div className="space-y-3 border-b border-border px-5 py-4">
@@ -166,13 +171,15 @@ export default function Equipamentos() {
                     {atrasado(equipamento) ? <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase">Atrasada</span> : null}
                   </Td>
                   <Td className="text-right">
-                    <div className="inline-flex gap-1">
-                      <button type="button" onClick={() => abrirEdicao(equipamento)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                    <div className="inline-flex gap-1">                      {podeEditar ? (
+                        <button type="button" onClick={() => abrirEdicao(equipamento)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button type="button" onClick={() => excluir(equipamento)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                      ) : null}                      {podeExcluir ? (
+                        <button type="button" onClick={() => excluir(equipamento)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </button>
+                      ) : null}
                     </div>
                   </Td>
                 </tr>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCollection, useCollections } from '@/data/store'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import { Card, CardHeader, EmptyState, Field, Input, LoadingState, Modal, Pill, SearchInput, Select, StatusBadge, TableWrapper, Td, Textarea, Th } from '@/components/ui'
 import {
@@ -46,6 +47,10 @@ export default function Agendamento() {
   const { items: cirurgias, loading, create, update, remove } = useCollection('cirurgias')
   const auxiliares = useCollections(['salas', 'equipe'])
   const toast = useToast()
+  const { canDo } = useAuth()
+  const podeCriar = canDo('agendamento', 'criar')
+  const podeEditar = canDo('agendamento', 'editar')
+  const podeExcluir = canDo('agendamento', 'excluir')
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('todos')
@@ -135,11 +140,11 @@ export default function Agendamento() {
           title="Agendamento cirúrgico"
           description="Cadastro e acompanhamento das cirurgias (identificação apenas por prontuário)"
           icon={CalendarDays}
-          actions={
-            <button type="button" className="btn-primary" onClick={abrirNova}>
+          actions={podeCriar ? (
+              <button type="button" className="btn-primary" onClick={abrirNova}>
               <Plus className="h-4 w-4" /> Nova cirurgia
             </button>
-          }
+            ) : null}
         />
 
         <div className="space-y-3 border-b border-border px-5 py-4">
@@ -196,13 +201,15 @@ export default function Agendamento() {
                     <StatusBadge map={SURGERY_STATUS} value={cirurgia.status} />
                   </Td>
                   <Td className="text-right">
-                    <div className="inline-flex gap-1">
-                      <button type="button" onClick={() => abrirEdicao(cirurgia)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
+                    <div className="inline-flex gap-1">                      {podeEditar ? (
+                        <button type="button" onClick={() => abrirEdicao(cirurgia)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary" aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button type="button" onClick={() => excluir(cirurgia)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
+                      ) : null}                      {podeExcluir ? (
+                        <button type="button" onClick={() => excluir(cirurgia)} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600" aria-label="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </button>
+                      ) : null}
                     </div>
                   </Td>
                 </tr>
