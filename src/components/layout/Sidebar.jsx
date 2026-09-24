@@ -98,15 +98,15 @@ export default function Sidebar({ open, onClose }) {
           </div>
 
           {backend.alerta ? (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-              <p className="text-[11px] font-semibold leading-snug text-amber-100">
-                Banco indisponível — os registros estão sendo salvos neste computador e não no Supabase.
+            <div className="flex items-start gap-2 rounded-lg border border-red-400/40 bg-red-500/20 px-3 py-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+              <p className="text-[11px] font-semibold leading-snug text-red-100">
+                Banco indisponível — nada está sendo salvo. Não registre atendimentos até a conexão voltar.
               </p>
             </div>
           ) : null}
 
-          <p className={`px-1 text-[10px] ${backend.alerta ? 'text-amber-200' : 'text-white/40'}`}>
+          <p className={`px-1 text-[10px] ${backend.alerta ? 'text-red-200' : 'text-white/40'}`}>
             {APP_NAME} · v1.0 · dados: {backend.rotulo}
           </p>
         </div>

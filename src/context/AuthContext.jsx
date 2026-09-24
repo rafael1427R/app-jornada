@@ -5,6 +5,7 @@ import { MODULES } from '@/lib/constants'
 import { readStorage, writeStorage } from '@/lib/storage'
 import { normalize } from '@/lib/format'
 import { autenticarRemoto } from '@/data/authRemote'
+import { supabaseEnabled } from '@/data/supabaseClient'
 import { hasAction, normalizePermissions, visibleModules } from '@/lib/permissions'
 
 const AuthContext = createContext(null)
@@ -39,8 +40,12 @@ export function AuthProvider({ children }) {
   }, [])
 
   /**
-   * Com o Supabase configurado e o `security.sql` aplicado, a senha é
-   * conferida no banco. Caso contrário, cai para a verificação local.
+   * Com o Supabase configurado, a senha é conferida exclusivamente no banco
+   * (função `autenticar_usuario`, de `supabase/security.sql`). Se o banco não
+   * responder, o login falha: entrar por uma cópia local do usuário daria
+   * acesso ao sistema sem que o banco tenha validado nada.
+   *
+   * A verificação local só vale quando o app roda sem Supabase algum.
    */
   const login = useCallback(
     async (usuario, senha) => {
@@ -48,6 +53,14 @@ export function AuthProvider({ children }) {
       if (!remoto.unavailable) {
         if (!remoto.ok) return remoto
         return abrirSessao(remoto.user)
+      }
+
+      if (supabaseEnabled) {
+        return {
+          ok: false,
+          error:
+            'Sem conexão com o banco de dados. Verifique a internet e se o arquivo security.sql foi executado no Supabase.',
+        }
       }
 
       const found = usuarios.find((item) => normalize(item.usuario) === normalize(usuario))

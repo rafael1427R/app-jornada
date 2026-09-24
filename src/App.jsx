@@ -43,9 +43,12 @@ function Guard({ moduleId, children }) {
 }
 
 function PrivateArea() {
-  const { isAuthenticated, hydrated, loadingUsers } = useAuth()
+  const { isAuthenticated, hydrated, loadingUsers, session } = useAuth()
 
-  if (!hydrated || loadingUsers) {
+  // Quem ainda não entrou vai direto para o login: esperar a lista de
+  // usuários aqui só serviria para travar a tela quando o banco demora.
+  // Com sessão salva, aguardamos para resolver quem é o usuário.
+  if (!hydrated || (session && loadingUsers)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <LoadingState label="Carregando sistema..." />

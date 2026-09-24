@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react'
 import { uid } from '@/lib/format'
+import { registrarRelatorDeFalha } from '@/data/store'
 
 const ToastContext = createContext(null)
 
@@ -45,6 +46,16 @@ export function ToastProvider({ children }) {
       dismiss,
     }),
     [push, dismiss],
+  )
+
+  /**
+   * Falha de gravação no banco vira aviso na tela mesmo quando a página não
+   * trata o erro. Sem isso, o modo estrito do store recusaria a gravação em
+   * silêncio — pior do que o antigo fallback para o navegador.
+   */
+  useEffect(
+    () => registrarRelatorDeFalha((mensagem) => push(`Não foi salvo no banco: ${mensagem}`, 'error', 9000)),
+    [push],
   )
 
   return (
