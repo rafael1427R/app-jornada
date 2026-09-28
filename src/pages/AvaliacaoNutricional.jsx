@@ -30,10 +30,14 @@ import {
   ASG_CLASSES,
   BED_SECTORS,
   DYSPHAGIA,
+  ENTERAL_ROUTES,
   FEEDING_ROUTES,
   LAB_TESTS,
   MOBILITY,
   NRS_ITEMS,
+  SEXOS,
+  rotuloDaVia,
+  rotuloDoSexo,
 } from '@/lib/constants'
 import { formatDate, formatDateTime, matches, todayISO, uid } from '@/lib/format'
 import { baixarCsv, carimboArquivo } from '@/lib/csv'
@@ -44,6 +48,7 @@ import PrintHeader from '@/components/PrintHeader'
 const EMPTY = {
   prontuario: '',
   nome_paciente: '',
+  nome_social: '',
   data_nascimento: '',
   sexo: '',
   setor: '',
@@ -169,7 +174,7 @@ export default function AvaliacaoNutricional() {
       avaliacoes
         .filter((item) => {
           if (filtro === 'risco') return avaliarNrs(item.nrs).risco
-          if (filtro === 'enteral') return ['SNG', 'SOG', 'SNE', 'GTT'].includes(item.via)
+          if (filtro === 'enteral') return ENTERAL_ROUTES.includes(item.via)
           if (filtro === 'sem_evolucao') return (item.evolucoes || []).length === 0
           return true
         })
@@ -369,7 +374,7 @@ export default function AvaliacaoNutricional() {
               Com risco ({kpis.risco})
             </Pill>
             <Pill active={filtro === 'enteral'} onClick={() => setFiltro('enteral')}>
-              Terapia enteral ({avaliacoes.filter((item) => ['SNG', 'SOG', 'SNE', 'GTT'].includes(item.via)).length})
+              Terapia enteral ({avaliacoes.filter((item) => ENTERAL_ROUTES.includes(item.via)).length})
             </Pill>
             <Pill active={filtro === 'sem_evolucao'} onClick={() => setFiltro('sem_evolucao')}>
               Sem reavaliação ({avaliacoes.filter((item) => (item.evolucoes || []).length === 0).length})
@@ -475,14 +480,20 @@ export default function AvaliacaoNutricional() {
             <Field label="Nome completo" className="sm:col-span-2">
               <Input value={form.nome_paciente} onChange={(event) => setForm({ ...form, nome_paciente: event.target.value })} />
             </Field>
+            <Field label="Nome social" className="sm:col-span-2" hint="Quando informado, é o nome usado no atendimento.">
+              <Input value={form.nome_social} onChange={(event) => setForm({ ...form, nome_social: event.target.value })} />
+            </Field>
             <Field label="Data de nascimento">
               <Input type="date" value={form.data_nascimento} onChange={(event) => setForm({ ...form, data_nascimento: event.target.value })} />
             </Field>
             <Field label="Sexo">
               <Select value={form.sexo} onChange={(event) => setForm({ ...form, sexo: event.target.value })}>
                 <option value="">Selecione...</option>
-                <option value="F">Feminino</option>
-                <option value="M">Masculino</option>
+                {SEXOS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </Select>
             </Field>
             <Field label="Setor">
@@ -640,7 +651,7 @@ export default function AvaliacaoNutricional() {
                 <Select value={form.via} onChange={(event) => setForm({ ...form, via: event.target.value })}>
                   {FEEDING_ROUTES.map((item) => (
                     <option key={item} value={item}>
-                      {item}
+                      {rotuloDaVia(item)}
                     </option>
                   ))}
                 </Select>
@@ -791,7 +802,7 @@ export default function AvaliacaoNutricional() {
                   <td className="border border-black px-2 py-1"><b>Data da avaliação:</b> {formatDate(imprimindo.data_avaliacao)}</td>
                   <td className="border border-black px-2 py-1"><b>Admissão:</b> {imprimindo.data_admissao ? formatDate(imprimindo.data_admissao) : '—'}</td>
                   <td className="border border-black px-2 py-1"><b>Nascimento:</b> {imprimindo.data_nascimento ? formatDate(imprimindo.data_nascimento) : '—'}</td>
-                  <td className="border border-black px-2 py-1"><b>Sexo:</b> {imprimindo.sexo || '—'}</td>
+                  <td className="border border-black px-2 py-1"><b>Sexo:</b> {rotuloDoSexo(imprimindo.sexo)}</td>
                 </tr>
                 <tr>
                   <td className="border border-black px-2 py-1" colSpan={4}><b>Diagnóstico médico:</b> {imprimindo.diagnostico_medico || '—'}</td>
