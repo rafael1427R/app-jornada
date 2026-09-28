@@ -176,12 +176,93 @@ export const DIET_COLORS = {
 }
 
 /** Vias de alimentação da ficha de avaliação. */
-export const FEEDING_ROUTES = ['VO', 'SNG', 'SOG', 'SNE', 'GTT', 'NPT', 'Mista', 'Zero']
+export const FEEDING_ROUTES = ['VO', 'SNG', 'SOG', 'SNE', 'GTT', 'JTT', 'NPT', 'Mista', 'Zero']
 
 /** Vias que caracterizam terapia nutricional enteral. */
-export const ENTERAL_ROUTES = ['SNG', 'SOG', 'SNE', 'GTT']
+export const ENTERAL_ROUTES = ['SNG', 'SOG', 'SNE', 'GTT', 'JTT']
+
+/** Nome por extenso de cada via, para telas e relatórios. */
+export const FEEDING_ROUTE_LABELS = {
+  VO: 'Via oral',
+  SNG: 'Sonda nasogástrica',
+  SOG: 'Sonda orogástrica',
+  SNE: 'Sonda nasoentérica',
+  GTT: 'Gastrostomia',
+  JTT: 'Jejunostomia',
+  NPT: 'Nutrição parenteral',
+  Mista: 'Associação de vias',
+  Zero: 'Dieta zero',
+}
+
+export function rotuloDaVia(via) {
+  if (!via) return '—'
+  const nome = FEEDING_ROUTE_LABELS[via]
+  return nome ? `${via} — ${nome}` : via
+}
+
+/**
+ * Agrupamento das vias para o indicador "perfil das vias de alimentação".
+ * A associação de vias só é contabilizada quando existe de fato.
+ */
+export const FEEDING_ROUTE_GROUPS = [
+  { id: 'oral', label: 'Via oral', vias: ['VO'] },
+  { id: 'enteral', label: 'Nutrição enteral', vias: ENTERAL_ROUTES },
+  { id: 'parenteral', label: 'Nutrição parenteral', vias: ['NPT'] },
+  { id: 'mista', label: 'Associação de vias', vias: ['Mista'] },
+  { id: 'zero', label: 'Dieta zero', vias: ['Zero'] },
+]
+
+export function grupoDaVia(via) {
+  return FEEDING_ROUTE_GROUPS.find((grupo) => grupo.vias.includes(via)) || null
+}
 
 export const ENTERAL_TYPES = ['Industrializada', 'Artesanal']
+
+/** Sexo registrado no prontuário. "Outros" atende identidades não binárias. */
+export const SEXOS = [
+  { value: 'F', label: 'Feminino' },
+  { value: 'M', label: 'Masculino' },
+  { value: 'O', label: 'Outros' },
+]
+
+export function rotuloDoSexo(valor) {
+  return SEXOS.find((item) => item.value === valor)?.label || '—'
+}
+
+/**
+ * Tipos de cardápio servidos pela UAN. A lista vem da rotina do setor e
+ * combina consistência com as modificações terapêuticas mais frequentes.
+ */
+export const MENU_TYPES = [
+  'Livre',
+  'Branda',
+  'Branda para diabetes',
+  'Branda hipossódica',
+  'Branda hipossódica para diabetes',
+  'Branda hipossódica para renal',
+  'Branda hipossódica para diabetes e renal',
+]
+
+/**
+ * Deduz o tipo de cardápio a partir da consistência e da modificação, para
+ * que prescrições antigas (sem o campo) continuem entrando no indicador.
+ */
+export function tipoDeCardapio(dieta) {
+  if (dieta?.tipo_cardapio) return dieta.tipo_cardapio
+  const consistencia = dieta?.consistencia
+  const modificacao = dieta?.modificacao
+  if (consistencia !== 'Branda') return consistencia === 'Livre' ? 'Livre' : null
+  switch (modificacao) {
+    case 'Para diabetes':
+      return 'Branda para diabetes'
+    case 'Hipossódica':
+      return 'Branda hipossódica'
+    case 'Para renal':
+      return 'Branda hipossódica para renal'
+    default:
+      return 'Branda'
+  }
+}
 
 /**
  * Horários das refeições. Pacientes do fluxo geral recebem seis refeições;
@@ -229,6 +310,62 @@ export const DIET_REGIMES = {
 
 /** Faixas de alerta do tempo de permanência, em horas. */
 export const OBSERVATION_HOURS = { atencao: 6, critico: 12, limite: 24 }
+
+/**
+ * Indicadores da UAN (Unidade de Alimentação e Nutrição).
+ *
+ * `direcao` diz como ler a meta: 'max' quer o valor abaixo do limite
+ * (desperdício), 'min' quer acima (conformidade e satisfação).
+ */
+export const UAN_INDICATORS = {
+  temperatura: {
+    label: 'Controle de temperatura dos alimentos',
+    descricao: 'Aferições dentro da faixa segura sobre o total aferido',
+    unidade: '%',
+    meta: 90,
+    direcao: 'min',
+  },
+  custo_refeicao: {
+    label: 'Custo de refeição por paciente',
+    descricao: 'Custo médio por refeição servida no período',
+    unidade: 'R$',
+    meta: 9.5,
+    direcao: 'max',
+  },
+  resto_ingestao: {
+    label: 'Resto-ingestão',
+    descricao: 'Sobra no prato do paciente sobre o total distribuído',
+    unidade: '%',
+    meta: 10,
+    direcao: 'max',
+  },
+  indice_desperdicio: {
+    label: 'Índice de desperdício',
+    descricao: 'Total descartado sobre o total produzido',
+    unidade: '%',
+    meta: 12,
+    direcao: 'max',
+  },
+  sobras_limpas: {
+    label: 'Sobras limpas',
+    descricao: 'Alimento produzido e não distribuído, em quilos',
+    unidade: 'kg',
+    meta: 25,
+    direcao: 'max',
+  },
+  satisfacao_pacientes: { label: 'Pacientes', descricao: 'Satisfação com o serviço de alimentação', unidade: '%', meta: 80, direcao: 'min' },
+  satisfacao_acompanhantes: { label: 'Acompanhantes', descricao: 'Satisfação com o serviço de alimentação', unidade: '%', meta: 80, direcao: 'min' },
+  satisfacao_funcionarios: { label: 'Funcionários', descricao: 'Satisfação com o serviço de alimentação', unidade: '%', meta: 80, direcao: 'min' },
+}
+
+/** Atingiu a meta? Leva em conta se o indicador é de máximo ou de mínimo. */
+export function metaAtingida(chave, valor) {
+  const indicador = UAN_INDICATORS[chave]
+  if (!indicador || valor == null || valor === '') return null
+  const numero = Number(valor)
+  if (Number.isNaN(numero)) return null
+  return indicador.direcao === 'min' ? numero >= indicador.meta : numero <= indicador.meta
+}
 
 export const DIET_STATUS = {
   ativa: { label: 'Ativa', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
