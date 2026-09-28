@@ -204,8 +204,79 @@ export function seedVisitantes() {
 
 /* ---------------------------------------------------------- Nutrição */
 
+/**
+ * Prescrições fictícias para conferência das telas. Cobrem de propósito
+ * todas as vias (inclusive JTT), os tipos de cardápio, nome social e o
+ * sexo "Outros", para que os indicadores não apareçam zerados.
+ */
 export function seedDietas() {
-  return []
+  const hoje = todayISO()
+  const rows = [
+    { prontuario: '204871', leito: 'CM-03', setor: 'Clínica Médica', consistencia: 'Branda', modificacao: 'Hipossódica', tipo_cardapio: 'Branda hipossódica', via_enteral: 'VO', nome_paciente: 'Maria Aparecida Souza', nome_social: '', sexo: 'F', nome_mae: 'Terezinha Souza', data_nascimento: '1958-04-12', acompanhante_refeicao: true },
+    { prontuario: '198340', leito: 'CM-07', setor: 'Clínica Médica', consistencia: 'Branda', modificacao: 'Para diabetes', tipo_cardapio: 'Branda para diabetes', via_enteral: 'VO', nome_paciente: 'João Batista Ferreira', sexo: 'M', nome_mae: 'Rosa Ferreira', data_nascimento: '1946-11-30' },
+    { prontuario: '221095', leito: 'CC-04', setor: 'Clínica Cirúrgica', consistencia: 'Líquida', modificacao: 'Sem modificação', via_enteral: 'VO', nome_paciente: 'Antônio Carlos Lima', sexo: 'M', nome_mae: 'Judite Lima', data_nascimento: '1972-02-08' },
+    { prontuario: '187654', leito: 'CC-11', setor: 'Clínica Cirúrgica', consistencia: 'Zero', modificacao: 'Sem modificação', via_enteral: 'Zero', nome_paciente: 'Sebastiana Rocha', sexo: 'F', nome_mae: 'Maria Rocha', data_nascimento: '1965-07-19' },
+    { prontuario: '210338', leito: 'UTIA-02', setor: 'UTI Adulto', consistencia: 'Zero', modificacao: 'Sem modificação', via_enteral: 'SNE', enteral_tipo: 'Industrializada', enteral_formula: 'Padrão 1.0 kcal/mL', enteral_volume: '6 x 200 mL', nome_paciente: 'Raimundo Nonato Silva', sexo: 'M', nome_mae: 'Francisca Silva', data_nascimento: '1951-09-03' },
+    { prontuario: '176520', leito: 'UTIA-05', setor: 'UTI Adulto', consistencia: 'Zero', modificacao: 'Sem modificação', via_enteral: 'GTT', enteral_tipo: 'Industrializada', enteral_formula: 'Hipercalórica 1.5 kcal/mL', enteral_volume: '5 x 250 mL', nome_paciente: 'Alex Pereira Martins', nome_social: 'Alexia Martins', sexo: 'O', nome_mae: 'Cleide Martins', data_nascimento: '1989-12-27' },
+    { prontuario: '233104', leito: 'UTI2-03', setor: 'UTI2', consistencia: 'Zero', modificacao: 'Para renal', via_enteral: 'JTT', enteral_tipo: 'Industrializada', enteral_formula: 'Específica para nefropatia', enteral_volume: '6 x 180 mL', nome_paciente: 'Francisco das Chagas Alves', sexo: 'M', nome_mae: 'Antônia Alves', data_nascimento: '1960-05-14' },
+    { prontuario: '241876', leito: 'UCI-02', setor: 'UCInco', consistencia: 'Zero', modificacao: 'Sem modificação', via_enteral: 'NPT', nome_paciente: 'Luzia Barbosa Neves', sexo: 'F', nome_mae: 'Ana Neves', data_nascimento: '1977-01-22' },
+    { prontuario: '229487', leito: 'CM-15', setor: 'Clínica Médica', consistencia: 'Branda', modificacao: 'Para renal', tipo_cardapio: 'Branda hipossódica para renal', via_enteral: 'Mista', enteral_tipo: 'Industrializada', enteral_formula: 'Complemento 1.5 kcal/mL', enteral_volume: '2 x 200 mL', nome_paciente: 'Benedito Oliveira Costa', sexo: 'M', nome_mae: 'Maria Costa', data_nascimento: '1954-08-09' },
+    { prontuario: '215663', leito: 'PED-04', setor: 'Pediatria', consistencia: 'Pastosa', modificacao: 'Sem modificação', via_enteral: 'VO', nome_paciente: 'Miguel Santos Araújo', sexo: 'M', nome_mae: 'Jéssica Araújo', data_nascimento: '2019-03-05', acompanhante_refeicao: true },
+    { prontuario: '238190', leito: 'OBS-06', setor: 'Obstetrícia', consistencia: 'Livre', modificacao: 'Sem modificação', tipo_cardapio: 'Livre', via_enteral: 'VO', nome_paciente: 'Camila Rodrigues Pinto', sexo: 'F', nome_mae: 'Sônia Pinto', data_nascimento: '1998-06-17', acompanhante_refeicao: true },
+    { prontuario: '244012', leito: 'CM-22', setor: 'Clínica Médica', consistencia: 'Branda', modificacao: 'Hipossódica', tipo_cardapio: 'Branda hipossódica para diabetes e renal', via_enteral: 'VO', adequacoes: ['Zero lactose'], nome_paciente: 'Terezinha de Jesus Moura', sexo: 'F', nome_mae: 'Alzira Moura', data_nascimento: '1943-10-02' },
+    { prontuario: '246558', leito: 'ISO-03', setor: 'Isolamento', consistencia: 'Líquida pastosa', modificacao: 'Sem modificação', via_enteral: 'SNG', enteral_tipo: 'Artesanal', enteral_formula: 'Liquidificada padrão', enteral_volume: '6 x 200 mL', nome_paciente: 'Geraldo Vieira Nunes', sexo: 'M', nome_mae: 'Lourdes Nunes', data_nascimento: '1968-12-11' },
+  ]
+
+  return rows.map((row) => ({
+    id: uid(),
+    regime: 'internacao',
+    consistencia: 'Livre',
+    modificacao: 'Sem modificação',
+    tipo_cardapio: '',
+    adequacoes: [],
+    via_enteral: 'VO',
+    enteral_tipo: '',
+    enteral_formula: '',
+    enteral_volume: '',
+    dieta_prescrita: '',
+    preparacao_diferenciada: '',
+    acompanhante_refeicao: false,
+    observacoes: '',
+    status: 'ativa',
+    data_prescricao: hoje,
+    inicio_em: '',
+    nome_paciente: '',
+    nome_social: '',
+    sexo: '',
+    nome_mae: '',
+    data_nascimento: '',
+    ...row,
+    criado_em: new Date().toISOString(),
+  }))
+}
+
+/**
+ * Indicadores mensais da UAN. Valores fictícios, coerentes entre si, só
+ * para a conferência visual da aba de indicadores.
+ */
+export function seedUanIndicadores() {
+  const agora = new Date()
+  const rows = [
+    { temperatura_aferidas: 120, temperatura_conformes: 112, custo_refeicao: 8.74, resto_ingestao: 11.2, indice_desperdicio: 13.5, sobras_limpas: 31.4, satisfacao_pacientes: 78, satisfacao_acompanhantes: 74, satisfacao_funcionarios: 81, refeicoes_distribuidas: 9120 },
+    { temperatura_aferidas: 124, temperatura_conformes: 116, custo_refeicao: 9.12, resto_ingestao: 10.4, indice_desperdicio: 12.8, sobras_limpas: 28.9, satisfacao_pacientes: 81, satisfacao_acompanhantes: 77, satisfacao_funcionarios: 83, refeicoes_distribuidas: 9480 },
+    { temperatura_aferidas: 128, temperatura_conformes: 121, custo_refeicao: 9.38, resto_ingestao: 9.6, indice_desperdicio: 11.9, sobras_limpas: 24.7, satisfacao_pacientes: 84, satisfacao_acompanhantes: 80, satisfacao_funcionarios: 85, refeicoes_distribuidas: 9735 },
+  ]
+
+  return rows.map((row, indice) => {
+    const data = new Date(agora.getFullYear(), agora.getMonth() - (rows.length - 1 - indice), 1)
+    return {
+      id: uid(),
+      competencia: `${data.getFullYear()}-${pad(data.getMonth() + 1)}`,
+      ...row,
+      observacao: '',
+      criado_em: new Date().toISOString(),
+    }
+  })
 }
 
 export function seedProdutos() {
