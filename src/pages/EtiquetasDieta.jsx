@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext'
 import { useAudit } from '@/lib/audit'
 import { Badge, Card, CardHeader, EmptyState, KpiCard, KpiGrid, LoadingState, Pill, SearchInput, Select } from '@/components/ui'
 import { DIET_COLORS, DIET_GROUPS, MEALS, grupoDaDieta } from '@/lib/constants'
-import { resumoDaDieta, usaSonda, viaDaDieta } from '@/lib/nutricao'
+import { nomeDeChamada, resumoDaDieta, usaSonda, viaDaDieta } from '@/lib/nutricao'
 import { formatDate, matches, todayISO, upper } from '@/lib/format'
 import { runPrint } from '@/lib/print'
 import PrintArea from '@/components/PrintArea'
@@ -34,7 +34,7 @@ export default function EtiquetasDieta() {
       dietas
         .filter((dieta) => dieta.status === 'ativa')
         .filter((dieta) => (filtroGrupo === 'todos' ? true : grupoDaDieta(dieta).id === filtroGrupo))
-        .filter((dieta) => matches(busca, dieta.prontuario, dieta.leito, dieta.setor, dieta.consistencia, dieta.nome_paciente))
+        .filter((dieta) => matches(busca, dieta.prontuario, dieta.leito, dieta.setor, dieta.consistencia, dieta.nome_paciente, dieta.nome_social))
         .sort((a, b) => String(a.leito).localeCompare(String(b.leito))),
     [dietas, filtroGrupo, busca],
   )
@@ -205,7 +205,7 @@ export default function EtiquetasDieta() {
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-slate-800">{dieta.leito}</p>
                       <p className="font-mono text-xs font-semibold text-primary">{dieta.prontuario}</p>
-                      {dieta.nome_paciente ? <p className="truncate text-xs text-slate-500">{dieta.nome_paciente}</p> : null}
+                      {nomeDeChamada(dieta) ? <p className="truncate text-xs text-slate-500">{nomeDeChamada(dieta)}</p> : null}
                     </div>
                     {marcada ? <CheckSquare className="h-5 w-5 shrink-0 text-primary" /> : <Square className="h-5 w-5 shrink-0 text-slate-300" />}
                   </div>
@@ -235,7 +235,9 @@ export default function EtiquetasDieta() {
                 const sonda = usaSonda(etiqueta)
                 const observacao = (etiqueta.regime || 'internacao') === 'observacao'
                 const hora = sonda ? refeicaoAtual.horaUti : refeicaoAtual.hora
-                const nominal = identificacao === 'nome' && etiqueta.nome_paciente
+                // O nome social, quando existe, é o que vai na etiqueta.
+                const nomeNaEtiqueta = nomeDeChamada(etiqueta)
+                const nominal = identificacao === 'nome' && nomeNaEtiqueta
 
                 return (
                   <div
@@ -254,7 +256,7 @@ export default function EtiquetasDieta() {
 
                     {nominal ? (
                       <div className="mt-[1mm]">
-                        <p className="truncate text-[4mm] font-extrabold uppercase leading-tight">{upper(etiqueta.nome_paciente)}</p>
+                        <p className="truncate text-[4mm] font-extrabold uppercase leading-tight">{upper(nomeNaEtiqueta)}</p>
                         <p className="text-[2.6mm]">
                           DN: {etiqueta.data_nascimento ? formatDate(etiqueta.data_nascimento) : '—'}
                           {etiqueta.nome_mae ? ` · Mãe: ${etiqueta.nome_mae}` : ''}
