@@ -12,6 +12,8 @@
 
 drop view if exists public.painel_acompanhantes;
 
+drop table if exists public.uan_indicadores cascade;
+drop table if exists public.avaliacoes_nutricionais cascade;
 drop table if exists public.movimentacoes_estoque cascade;
 drop table if exists public.produtos_estoque cascade;
 drop table if exists public.dietas cascade;
@@ -30,5 +32,6 @@ drop table if exists public.usuarios cascade;
 
 drop function if exists public.set_atualizado_em() cascade;
 drop function if exists public.autenticar_usuario(text, text) cascade;
-drop function if exists public.definir_senha(uuid, text) cascade;
+drop function if exists public.conferir_senha(uuid, text) cascade;
 drop function if exists public.hash_senha_usuario() cascade;
+drop function if exists public.proteger_master() cascade;
