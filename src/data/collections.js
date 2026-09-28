@@ -15,6 +15,7 @@ import {
   seedProdutos,
   seedMovimentacoes,
   seedAvaliacoes,
+  seedUanIndicadores,
 } from './seeds'
 
 /**
@@ -43,6 +44,7 @@ export const COLLECTIONS = {
     seed: seedAvaliacoes,
     dateFields: ['data_nascimento', 'data_admissao', 'data_avaliacao'],
   },
+  uanIndicadores: { key: 'uan-indicadores-v1', table: 'uan_indicadores', seed: seedUanIndicadores, dateFields: [] },
 }
 
 export const SESSION_KEY = 'sys-session-v1'

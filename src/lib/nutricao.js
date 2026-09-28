@@ -2,12 +2,23 @@ import { ENTERAL_ROUTES, MEALS } from './constants'
 
 /**
  * Registros antigos guardavam a via como "Não se aplica"; a rotina do setor
- * trabalha com VO, SNG, SOG, SNE, GTT, NPT, Mista e Zero.
+ * trabalha com VO, SNG, SOG, SNE, GTT, JTT, NPT, Mista e Zero.
  */
 export function viaDaDieta(dieta) {
   const via = dieta?.via_enteral
   if (!via || via === 'Não se aplica') return 'VO'
   return via
+}
+
+/**
+ * Nome pelo qual o paciente deve ser chamado e identificado. O nome social,
+ * quando informado, tem precedência sobre o nome de registro — é assim que a
+ * etiqueta e a chamada à beira-leito devem sair.
+ */
+export function nomeDeChamada(pessoa) {
+  const social = pessoa?.nome_social?.trim()
+  if (social) return social
+  return pessoa?.nome_paciente?.trim() || ''
 }
 
 /** Paciente em terapia nutricional enteral (segue os horários da UTI). */
