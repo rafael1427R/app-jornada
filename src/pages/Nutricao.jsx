@@ -36,10 +36,14 @@ import {
   ENTERAL_TYPES,
   FEEDING_ROUTES,
   MEALS,
+  MENU_TYPES,
   NUTRITION_FLOW,
   NUTRITION_STAGES,
   OBSERVATION_HOURS,
+  SEXOS,
   grupoDaDieta,
+  rotuloDaVia,
+  tipoDeCardapio,
 } from '@/lib/constants'
 import { viaDaDieta, usaSonda } from '@/lib/nutricao'
 import { formatDate, formatDateTime, formatDuration, matches, minutesBetween, todayISO } from '@/lib/format'
@@ -59,6 +63,7 @@ const EMPTY = {
   regime: 'internacao',
   consistencia: 'Livre',
   modificacao: 'Sem modificação',
+  tipo_cardapio: '',
   adequacoes: [],
   via_enteral: 'VO',
   enteral_tipo: '',
@@ -73,6 +78,8 @@ const EMPTY = {
   inicio_em: '',
   // Campos usados apenas quando a etiqueta é emitida com identificação nominal.
   nome_paciente: '',
+  nome_social: '',
+  sexo: '',
   nome_mae: '',
   data_nascimento: '',
 }
@@ -93,6 +100,7 @@ export default function Nutricao() {
   const { items: psLeitos } = useCollection('psLeitos')
   const { items: visitantes } = useCollection('visitantes')
   const { items: avaliacoes } = useCollection('avaliacoes')
+  const { items: uanIndicadores } = useCollection('uanIndicadores')
   const { user, canDo } = useAuth()
   const toast = useToast()
   const registrarLog = useAudit()
@@ -360,7 +368,7 @@ export default function Nutricao() {
       ) : aba === 'observacao' ? (
         <ObservacaoPs psLeitos={psLeitos} dietas={dietas} onPrescrever={prescreverParaPs} />
       ) : aba === 'indicadores' ? (
-        <IndicadoresNutricao dietas={dietas} avaliacoes={avaliacoes} />
+        <IndicadoresNutricao dietas={dietas} avaliacoes={avaliacoes} uanIndicadores={uanIndicadores} />
       ) : aba === 'prescricoes' ? (
         <Card>
           <CardHeader
@@ -726,11 +734,21 @@ export default function Nutricao() {
               ))}
             </Select>
           </Field>
+          <Field label="Tipo de cardápio" hint="Deixe em branco para deduzir da consistência e da modificação.">
+            <Select value={form.tipo_cardapio} onChange={(event) => setForm({ ...form, tipo_cardapio: event.target.value })}>
+              <option value="">Automático ({tipoDeCardapio({ ...form, tipo_cardapio: '' }) || 'não se aplica'})</option>
+              {MENU_TYPES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Via de alimentação" hint={ENTERAL_ROUTES.includes(form.via_enteral) ? 'Paciente em terapia enteral: segue os horários da UTI e entra na listagem de sondas.' : ''}>
             <Select value={form.via_enteral} onChange={(event) => setForm({ ...form, via_enteral: event.target.value })}>
               {FEEDING_ROUTES.map((item) => (
                 <option key={item} value={item}>
-                  {item === 'VO' ? 'VO — via oral' : item}
+                  {rotuloDaVia(item)}
                 </option>
               ))}
             </Select>
@@ -808,6 +826,19 @@ export default function Nutricao() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="Nome completo">
                 <Input value={form.nome_paciente} onChange={(event) => setForm({ ...form, nome_paciente: event.target.value })} />
+              </Field>
+              <Field label="Nome social" hint="Quando informado, é o nome usado na etiqueta e na chamada.">
+                <Input value={form.nome_social} onChange={(event) => setForm({ ...form, nome_social: event.target.value })} />
+              </Field>
+              <Field label="Sexo">
+                <Select value={form.sexo} onChange={(event) => setForm({ ...form, sexo: event.target.value })}>
+                  <option value="">Selecione...</option>
+                  {SEXOS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </Select>
               </Field>
               <Field label="Nome da mãe">
                 <Input value={form.nome_mae} onChange={(event) => setForm({ ...form, nome_mae: event.target.value })} />
