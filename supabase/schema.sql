@@ -333,8 +333,12 @@ alter table public.dietas add column if not exists enteral_volume text default '
 alter table public.dietas add column if not exists preparacao_diferenciada text default '';
 -- Identificação nominal: usada apenas quando o setor emite etiquetas com nome.
 alter table public.dietas add column if not exists nome_paciente text default '';
+alter table public.dietas add column if not exists nome_social text default '';
+alter table public.dietas add column if not exists sexo text default '';
 alter table public.dietas add column if not exists nome_mae text default '';
 alter table public.dietas add column if not exists data_nascimento date;
+-- Tipo de cardápio servido pela UAN; em branco, é deduzido da consistência.
+alter table public.dietas add column if not exists tipo_cardapio text default '';
 
 create index if not exists dietas_prontuario_idx on public.dietas (prontuario);
 create index if not exists dietas_regime_idx on public.dietas (regime);
@@ -443,9 +447,36 @@ create table if not exists public.avaliacoes_nutricionais (
   atualizado_em           timestamptz not null default now()
 );
 
+-- Nome social na ficha de avaliação, para atendimento pelo nome correto.
+alter table public.avaliacoes_nutricionais add column if not exists nome_social text default '';
+
 create index if not exists avaliacoes_prontuario_idx on public.avaliacoes_nutricionais (prontuario);
 create index if not exists avaliacoes_data_idx on public.avaliacoes_nutricionais (data_avaliacao desc);
 create index if not exists avaliacoes_risco_idx on public.avaliacoes_nutricionais (nrs_risco);
+
+-- ---------------------------------------------------------------------
+-- 17. Indicadores mensais da UAN (Unidade de Alimentação e Nutrição)
+-- Uma linha por competência (AAAA-MM). Não guarda dado de paciente.
+-- ---------------------------------------------------------------------
+create table if not exists public.uan_indicadores (
+  id                        uuid primary key default gen_random_uuid(),
+  competencia               text        not null,
+  temperatura_aferidas      integer     not null default 0,
+  temperatura_conformes     integer     not null default 0,
+  custo_refeicao            numeric(10,2) not null default 0,
+  resto_ingestao            numeric(6,2)  not null default 0,
+  indice_desperdicio        numeric(6,2)  not null default 0,
+  sobras_limpas             numeric(10,2) not null default 0,
+  satisfacao_pacientes      numeric(6,2)  not null default 0,
+  satisfacao_acompanhantes  numeric(6,2)  not null default 0,
+  satisfacao_funcionarios   numeric(6,2)  not null default 0,
+  refeicoes_distribuidas    integer     not null default 0,
+  observacao                text        default '',
+  criado_em                 timestamptz not null default now(),
+  atualizado_em             timestamptz not null default now()
+);
+
+create unique index if not exists uan_indicadores_competencia_idx on public.uan_indicadores (competencia);
 
 -- ---------------------------------------------------------------------
 -- Triggers de atualização
@@ -457,7 +488,8 @@ begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
     'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
-    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais'
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais',
+    'uan_indicadores'
   ] loop
     execute format('drop trigger if exists set_atualizado_em on public.%I', tabela);
     execute format(
@@ -482,7 +514,8 @@ begin
   foreach tabela in array array[
     'usuarios', 'salas_cirurgicas', 'equipe_medica', 'cirurgias', 'equipamentos',
     'escala_plantao', 'rpa_leitos', 'leitos', 'visitantes', 'ps_leitos', 'ps_altas', 'log_auditoria',
-    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais'
+    'dietas', 'produtos_estoque', 'movimentacoes_estoque', 'avaliacoes_nutricionais',
+    'uan_indicadores'
   ] loop
     execute format('alter table public.%I enable row level security', tabela);
     execute format('drop policy if exists "acesso_interno" on public.%I', tabela);
