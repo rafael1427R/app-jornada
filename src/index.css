@@ -1,70 +1,80 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base {
-     :root {
-        --background: 210 30% 97%;
-        --foreground: 213 40% 15%;
-        --card: 0 0% 100%;
-        --card-foreground: 213 40% 15%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 213 40% 15%;
-        --primary: 213 87% 28%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 200 60% 50%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 210 20% 93%;
-        --muted-foreground: 213 20% 45%;
-        --accent: 200 70% 55%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 210 20% 88%;
-        --input: 210 20% 88%;
-        --ring: 213 87% 28%;
-        --chart-1: 213 87% 28%;
-        --chart-2: 200 60% 50%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
-        --isac-dark: 213 87% 28%;
-        --isac-mid: 200 60% 50%;
-        --isac-light: 200 70% 75%;
-    }
-    .dark {
-        --background: 213 40% 8%;
-        --foreground: 0 0% 98%;
-        --card: 213 40% 10%;
-        --card-foreground: 0 0% 98%;
-        --popover: 213 40% 10%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 200 70% 55%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 213 40% 18%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 213 40% 15%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 200 60% 40%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 213 40% 18%;
-        --input: 213 40% 18%;
-        --ring: 200 70% 55%;
-        --chart-1: 200 70% 55%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-    }
-}
 
 @layer base {
-    * {
-        @apply border-border outline-ring/50;
-    }
-    body {
-        @apply bg-background text-foreground;
-    }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  }
+  * {
+    @apply border-border;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-white shadow-card;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition
+           placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition
+           focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-hover;
+  }
+  .btn-accent {
+    @apply btn bg-accent text-white hover:bg-accent-dark;
+  }
+  .btn-ghost {
+    @apply btn border border-border bg-white text-slate-600 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+  .table-head {
+    @apply bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
+}
+
+/* ---------------------------------------------------------------- Impressão */
+#print-root {
+  display: none;
+}
+
+@media print {
+  body.is-printing #root {
+    display: none !important;
+  }
+  body.is-printing #print-root {
+    display: block !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  /* Faz o navegador imprimir as cores de fundo das etiquetas e faixas. */
+  #print-root,
+  #print-root * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
